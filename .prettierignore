@@ -1,0 +1,12 @@
+*.ejs
+src/routes/routes.ts
+src/tsoa-specs.json
+node_modules/
+logs/
+dist/
+.vscode
+tmp/
+typedocs/
+.DS_Store
+.scannerwork
+.env.local
