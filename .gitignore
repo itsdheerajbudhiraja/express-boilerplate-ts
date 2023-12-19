@@ -1,0 +1,12 @@
+node_modules/
+logs/
+dist/
+.vscode
+tmp/
+typedocs/
+.DS_Store
+.scannerwork
+.env.local
+reports/
+Dockerfile.local
+rust-wasm-libs/target/

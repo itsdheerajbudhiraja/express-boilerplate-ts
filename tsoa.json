@@ -1,0 +1,61 @@
+{
+    "entryFile": "src/index.ts",
+    "noImplicitAdditionalProperties": "throw-on-extras",
+    "controllerPathGlobs": [
+        "src/controllers/*.ts"
+    ],
+    "spec": {
+        "specFileBaseName": "tsoa-specs",
+        "outputDirectory": "src",
+        "specVersion": 3,
+        "swagger": "3.1.0",
+        "version": "1.0.0",
+        "name": "POC",
+        "description": "API Server",
+        "host": "localhost:3000",
+        "schemes": [
+            "http"
+        ],
+        "securityDefinitions": {
+            "bearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header"
+            },
+            "apiKey": {
+                "type": "apiKey",
+                "name": "X-API-KEY",
+                "in": "header"
+            }
+        },
+        "rootSecurity": [
+            {
+                "apiKey": []
+            }
+        ],
+        "tsoa_auth": {
+            "type": "oauth2",
+            "authorizationUrl": "http://swagger.io/api/oauth/dialog",
+            "flow": "implicit",
+            "scopes": {
+                "write:user": "modify things",
+                "read:user": "read things"
+            }
+        },
+        "tags": [
+            {
+                "name": "Users",
+                "description": "Operations about users",
+                "externalDocs": {
+                    "description": "User CRUD operations Docs",
+                    "url": "http://swagger.io"
+                }
+            }
+        ]
+    },
+    "routes": {
+        "authenticationModule": "src/middlewares/authMiddleware.ts",
+        "routesDir": "src/routes",
+        "esm": "true"
+    }
+}

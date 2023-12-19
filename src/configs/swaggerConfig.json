@@ -1,0 +1,12 @@
+{
+	"definition": {
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Swagger from comments",
+			"version": "3.1.0",
+			"description": "API Server swagger config to generate swagger from comments"
+		}
+	},
+	"failOnErrors": true,
+	"apis": ["**/*.ts"]
+}
