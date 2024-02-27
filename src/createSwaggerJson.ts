@@ -1,12 +1,13 @@
+import deepMerge from "deepmerge";
+import esMain from "es-main";
 import { writeFileSync } from "fs";
 import path from "path";
-import { logger } from "./winston_logger.js";
-import deepMerge from "deepmerge";
-import existingSwagger from "./tsoa-specs.json" assert { type: "json" };
 import swaggerJsdoc from "swagger-jsdoc";
+
 import swaggerConfig from "./configs/swaggerConfig.json" assert { type: "json" };
+import existingSwagger from "./tsoa-specs.json" assert { type: "json" };
 import { dirName } from "./utils/fileDirName.js";
-import esMain from "es-main";
+import { logger } from "./winston_logger.js";
 
 const modifiedSwaggerFilePath = path.join(dirName(import.meta), "../swagger.json");
 

@@ -1,4 +1,5 @@
-import { SignOptions, VerifyOptions } from "jsonwebtoken";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { SignOptions, VerifyOptions } from "jsonwebtoken";
 
 enum AuthenticationScheme {
 	"Basic" = "Basic",
@@ -14,16 +15,18 @@ enum AuthenticationScheme {
 
 type AccessToken = {
 	value: string;
-	created_at: string;
-	expiration_time: string;
-} & { [key: string]: string | number | object };
+	created_at: Date;
+	expiration_time: Date;
+} & { [key: string]: any };
+
 type RefreshToken = {
 	value: string;
-	created_at: string;
-	expiration_time: string;
+	user_id: string;
+	created_at: Date;
+	expiration_time: Date;
 	access_token: string;
 	previous_refresh_token: string;
-} & { [key: string]: string | number | object };
+} & { [key: string]: any };
 
 type Token = {
 	accessToken: AccessToken;

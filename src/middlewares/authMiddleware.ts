@@ -1,5 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
+
 import { StatusCodes } from "http-status-codes";
+
 import auth from "../auth/index.js";
 import { Failure } from "../constants.js";
 import { Forbidden, Unauthorized } from "../errors/ApiError.js";
@@ -41,7 +43,7 @@ export function authenticateDocsApiKey(req: Request, res: Response, next: NextFu
 			res.setHeader("WWW-Authenticate", 'Basic realm="Node"');
 			return res.sendStatus(StatusCodes.UNAUTHORIZED);
 		}
-		const base64 = authorizationHeader?.split("Basic ");
+		const base64 = authorizationHeader.split("Basic ");
 		const credentials = Buffer.from(base64[1], "base64").toString();
 		if (!credentials) {
 			res.setHeader("WWW-Authenticate", 'Basic realm="Node"');

@@ -1,5 +1,6 @@
+import type { UserCreationParams } from "../types/UserCreationParams.js";
+
 import { User } from "../entities/User.js";
-import { UserCreationParams } from "../types/UserCreationParams.js";
 
 export class UsersService {
 	public async getUserById(id: string, _name?: string): Promise<User> {

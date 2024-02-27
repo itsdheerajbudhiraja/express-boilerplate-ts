@@ -2,11 +2,13 @@ import { existsSync, readFileSync } from "fs";
 import http from "http";
 import https from "https";
 import path from "path";
+
 import { logger } from "../winston_logger.js";
+
 import { app } from "./app.js";
 
 const HOST: string = process.env.HOST || "0.0.0.0";
-const PORT: number = (process.env.PORT as unknown as number) || 3000;
+const PORT: number = process.env.PORT || 3000;
 
 let server;
 

@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { NextFunction, Request, Response } from "express";
+
+import { jest } from "@jest/globals";
 import { StatusCodes } from "http-status-codes";
+
+import auth from "../../../auth/index.js";
+import { ApiError } from "../../../errors/ApiError.js";
 import {
 	ApiAuthType,
 	authenticateAdminApiKey,
@@ -7,21 +13,17 @@ import {
 	authorize,
 	expressAuthentication
 } from "../../../middlewares/authMiddleware.js";
-import { NextFunction, Request, Response } from "express";
-import auth from "../../../auth/index.js";
-import { ApiError } from "../../../errors/ApiError.js";
-import { jest } from "@jest/globals";
 
 let res = <Response>{};
 const next: NextFunction = jest.fn();
 
 const mockResponse = () => {
-	const res = <Response>{};
-	res.setHeader = jest.fn<any>();
-	res.sendStatus = jest.fn<any>();
-	res.UNAUTHORIZED = jest.fn();
-	res.FORBIDDEN = jest.fn();
-	return res;
+	const resp = <Response>{};
+	resp.setHeader = jest.fn<any>();
+	resp.sendStatus = jest.fn<any>();
+	resp.UNAUTHORIZED = jest.fn();
+	resp.FORBIDDEN = jest.fn();
+	return resp;
 };
 
 res = mockResponse();

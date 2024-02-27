@@ -1,18 +1,22 @@
+import type { Application, NextFunction, Request, Response } from "express";
+
+import { AxiosError } from "axios";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { Application, NextFunction, Request, Response } from "express";
+import express from "express";
+import mongoSanitize from "express-mongo-sanitize";
 import helmet from "helmet";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import MongoosePkg from "mongoose";
 import { ValidateError } from "tsoa";
+
 import { docsRouter } from "../controllers/Docs.js";
 import { ApiError } from "../errors/ApiError.js";
 import { ValidationError } from "../errors/ValidationError.js";
 import { responseMiddleware } from "../middlewares/responseMiddleware.js";
 import { logger } from "../winston_logger.js";
+
 import { RegisterRoutes } from "./routes.js";
-import mongoSanitize from "express-mongo-sanitize";
-import { AxiosError } from "axios";
 
 const MongooseError = MongoosePkg.Error;
 
@@ -85,7 +89,7 @@ RegisterRoutes(app);
  *       "404":
  *         description: "Server is Down"
  */
-app.get("/", async (req: Request, res: Response) => {
+app.get("/", (req: Request, res: Response) => {
 	return res.send("OK");
 });
 
@@ -137,7 +141,7 @@ app.use(function errorHandler(
 });
 
 app.use(function (req: Request, res: Response, next: NextFunction) {
-	if (res.status(StatusCodes.NOT_FOUND)) {
+	if (res.statusCode !== StatusCodes.NOT_FOUND) {
 		return res.NOT_FOUND(
 			`Can't ${req.method} '${req.url}'. Invalid API route. Please check route and try again`
 		);

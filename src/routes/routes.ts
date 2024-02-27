@@ -6,7 +6,6 @@ import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, H
 import { UsersController } from './../controllers/Users.js';
 import { expressAuthentication } from './../middlewares/authMiddleware.js';
 // @ts-ignore - no great way to install types from subpackage
-import promiseAny from 'promise.any';
 import type { RequestHandler, Router } from 'express';
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -17,15 +16,15 @@ const models: TsoaRoute.Models = {
         "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"message":{"dataType":"string","required":true},"status":{"dataType":"enum","enums":["Failure"],"required":true}},"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "ObjectId": {
+    "UUIDv4": {
         "dataType": "refAlias",
-        "type": {"dataType":"string","validators":{}},
+        "type": {"dataType":"string","validators":{"pattern":{"value":"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}"}}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "User": {
         "dataType": "refObject",
         "properties": {
-            "_id": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"double"},{"ref":"ObjectId"},{"dataType":"undefined"}]},
+            "_id": {"ref":"UUIDv4"},
             "name": {"dataType":"string","required":true},
             "email": {"dataType":"string","required":true},
             "mobile": {"dataType":"string","required":true},
@@ -223,7 +222,7 @@ export function RegisterRoutes(app: Router) {
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
             try {
-                request['user'] = await promiseAny.call(Promise, secMethodOrPromises);
+                request['user'] = await Promise.any(secMethodOrPromises);
                 next();
             }
             catch(err) {

@@ -1,8 +1,9 @@
-import { initSync } from "rust-wasm-libs";
-import { logger } from "../winston_logger.js";
 import { readFileSync } from "fs";
 import path from "path";
+import { initSync } from "rust-wasm-libs";
+
 import { dirName } from "../utils/fileDirName.js";
+import { logger } from "../winston_logger.js";
 
 logger.info("Initializing rust wasm");
 initSync(
@@ -12,8 +13,8 @@ logger.info("Rust wasm initialized successfully");
 
 async function factorial(number: bigint) {
 	const factorialRust = await import("rust-wasm-libs");
-	const factorial = await factorialRust.factorial_rust(number);
-	return factorial;
+	const factorialRustResult = await factorialRust.factorial_rust(number);
+	return factorialRustResult;
 }
 
 export { factorial };

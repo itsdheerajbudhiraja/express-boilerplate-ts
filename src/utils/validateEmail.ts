@@ -1,6 +1,7 @@
 import emailValidator from "deep-email-validator";
-import { logger } from "../winston_logger.js";
+
 import { ValidationError } from "../errors/ValidationError.js";
+import { logger } from "../winston_logger.js";
 
 async function validateEmail(email: string) {
 	try {
@@ -13,9 +14,9 @@ async function validateEmail(email: string) {
 		});
 		if (!res.valid) {
 			throw new ValidationError(
-				`Email validation failed with reason: ${res.reason} - ${res.validators[
-					res.reason as keyof typeof res.validators
-				]?.reason}`
+				`Email validation failed with reason: ${res.reason} - ${
+					res.validators[res.reason as keyof typeof res.validators]?.reason
+				}`
 			);
 		}
 	} catch (err) {

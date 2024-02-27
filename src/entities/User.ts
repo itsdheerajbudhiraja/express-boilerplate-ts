@@ -1,8 +1,11 @@
+import type { UserCreationParams } from "../types/UserCreationParams.js";
+
 import { v4 } from "uuid";
+
 import { db } from "../db/index.js";
 import { BadRequest } from "../errors/ApiError.js";
-import { UserCreationParams } from "../types/UserCreationParams.js";
 import { assignDefined } from "../utils/assignDefined.js";
+
 import { BaseEntity } from "./BaseEntity.js";
 
 class User extends BaseEntity {

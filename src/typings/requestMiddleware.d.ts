@@ -1,6 +1,11 @@
+import type { User } from "../entities/User.ts";
+
 /* eslint-disable */
-declare namespace Express {
-	export interface Request {
-		swaggerDoc: object;
+declare global {
+	namespace Express {
+		export interface Request {
+			swaggerDoc: object;
+			user: User;
+		}
 	}
 }

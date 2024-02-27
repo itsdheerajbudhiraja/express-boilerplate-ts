@@ -1,4 +1,5 @@
-import {
+import type DbInterface from "./DbInterface.js";
+import type {
 	Binary,
 	BulkWriteOptions,
 	CountDocumentsOptions,
@@ -10,29 +11,30 @@ import {
 	FindOneAndUpdateOptions,
 	FindOptions,
 	InsertOneOptions,
-	MongoClient,
 	OptionalUnlessRequiredId,
 	Sort,
 	UpdateFilter,
 	UpdateOptions,
-	WithoutId,
-	ClientEncryption
+	WithoutId
 } from "mongodb";
+
+import lodash from "lodash";
+import { MongoClient, ClientEncryption } from "mongodb";
+
+import { isObjectOrArray } from "../utils/checkType.js";
+import { isStringEmail } from "../utils/isStringEmail.js";
 import { logger } from "../winston_logger.js";
+
 import {
 	CLIENT_ENCRYPTION_ALGORITHM,
 	CLIENT_ENCRYPTION_CONFIG,
 	ENCRYPTION_CONFIG
 } from "./encryptionConfig.js";
-import DbInterface from "./DbInterface.js";
-import { isObjectOrArray } from "../utils/checkType.js";
-import { isStringEmail } from "../utils/isStringEmail.js";
-import lodash from "lodash";
 
 const { cloneDeep, get, set, size, has } = lodash;
 
 class MongoDb implements DbInterface<MongoDb> {
-	private static instance: MongoDb;
+	private static instance: MongoDb | undefined;
 
 	mongoClient = <MongoClient>{};
 	dbName = "";
@@ -47,7 +49,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		this.dbName = this.mongoClient.options.dbName;
 	}
 
-	public static getInstance(): MongoDb {
+	public static getInstance() {
 		return MongoDb.instance;
 	}
 
@@ -84,7 +86,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * @param {string} collectionName - Name of collection
 	 * @returns Collection of documents
 	 *  */
-	async getCollection<T extends Document>(collectionName: string) {
+	getCollection<T extends Document>(collectionName: string) {
 		try {
 			const db = this.mongoClient.db(this.dbName);
 			const collection = db.collection<T>(collectionName);
@@ -107,10 +109,10 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: InsertOneOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			let dataToInsert = cloneDeep(data);
 			const collectionEncryptionConfig =
-				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
+				collectionName in ENCRYPTION_CONFIG && ENCRYPTION_CONFIG[collectionName];
 
 			if (collectionEncryptionConfig) {
 				dataToInsert = await this.encrypt(collectionName, dataToInsert);
@@ -143,10 +145,10 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: BulkWriteOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			let dataToInsert = cloneDeep(data);
 			const collectionEncryptionConfig =
-				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
+				collectionName in ENCRYPTION_CONFIG && ENCRYPTION_CONFIG[collectionName];
 
 			if (collectionEncryptionConfig) {
 				dataToInsert = await Promise.all(
@@ -169,8 +171,8 @@ class MongoDb implements DbInterface<MongoDb> {
 	/**
 	 * Update one document in mongo collection
 	 * @param {string} collectionName - Name of collection
+	 * @param {Filter<T extends Document>} filterCondition - Filter condition to filer document
 	 * @param {UpdateFilter<T extends Document>} data - Document to update
-	 * @param {Filter<T extends Document>} - Filter condition to filer document
 	 * @param {UpdateOptions} options - Optional settings for the command
 	 */
 	async updateOne<T extends Document>(
@@ -180,7 +182,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: UpdateOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.updateOne(filterCondition, data, options);
 
 			logger.debug("Updated %o documents into the collection %o", r.modifiedCount, collectionName);
@@ -194,8 +196,8 @@ class MongoDb implements DbInterface<MongoDb> {
 	/**
 	 * Update many documents in mongo collection
 	 * @param {string} collectionName - Name of collection
+	 * @param {Filter<T extends Document>} filterCondition - Filter condition to filer documents
 	 * @param {UpdateFilter<T extends Document>} data - Documents to update
-	 * @param {Filter<T extends Document>} - Filter condition to filer documents
 	 * @param {UpdateOptions} options - Optional settings for the command
 	 */
 	async updateMany<T extends Document>(
@@ -205,7 +207,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: UpdateOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.updateMany(filterCondition, data, options);
 
 			logger.debug("Updated %o documents into the collection %o", r.modifiedCount, collectionName);
@@ -228,7 +230,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: DeleteOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.deleteOne(filterCondition, options);
 
 			logger.debug("Deleted %o documents into the collection %o", r.deletedCount, collectionName);
@@ -251,7 +253,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: DeleteOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.deleteMany(filterCondition, options);
 
 			logger.debug("Deleted %o documents into the collection %o", r.deletedCount, collectionName);
@@ -274,7 +276,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: FindOptions<T> = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.findOne(filterCondition, {
 				...options
 			});
@@ -292,7 +294,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Find one document and update in mongo collection
 	 * @param {string} collectionName - Name of collection
 	 * @param {Filter<T extends Document>} filterCondition - Condition to filter document to find and update
-	 * @param {Document} - Updated Document
+	 * @param {Document} data - Updated Document
 	 * @param {UpdateFilter<T extends Document>} options - Optional settings for the command
 	 */
 	async findOneAndUpdate<T extends Document>(
@@ -302,17 +304,14 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: FindOneAndUpdateOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.findOneAndUpdate(filterCondition, data, {
 				returnDocument: "after",
 				upsert: true,
 				...options
 			});
 
-			logger.debug(
-				"Find and Updated 1 document into the collection : %o",
-				JSON.stringify(r?.value)
-			);
+			logger.debug("Find and Updated 1 document into the collection : %o", JSON.stringify(r));
 			return r as T;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndUpdate: %o", err);
@@ -332,7 +331,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: FindOneAndDeleteOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.findOneAndDelete(filterCondition, { ...options });
 
 			logger.debug("Find and deleted document into the collection : %o", JSON.stringify(r?.value));
@@ -347,7 +346,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Find one document and replace in mongo collection
 	 * @param {string} collectionName - Name of collection
 	 * @param {Filter<T extends Document>} filterCondition - Condition to filter document to find and replace
-	 * @param {WithoutId<T>} - New Document
+	 * @param {WithoutId<T>} data - New Document
 	 * @param {FindOneAndReplaceOptions} options - Optional settings for the command
 	 */
 	async findOneAndReplace<T extends Document>(
@@ -357,7 +356,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		options: FindOneAndReplaceOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.findOneAndReplace(filterCondition, data, {
 				returnDocument: "after",
 				upsert: true,
@@ -379,15 +378,15 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Return mongo cursor for collection
 	 * @param {string} collectionName - Name of Collection
 	 * @param {Filter<T extends Document>} filterCondition - Condition to filter documents
-	 * @param {FindOptions<T extends Document>} findOptions - Find options
+	 * @param {FindOptions<T extends Document>} options - Find options
 	 */
-	async findCursor<T extends Document>(
+	findCursor<T extends Document>(
 		collectionName: string,
 		filterCondition: Filter<T>,
 		options: FindOptions<T> = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = collection.find(filterCondition, options);
 			return r;
 		} catch (err) {
@@ -400,7 +399,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Fetch count of documents in collection for specified filter criteria
 	 * @param {string} collectionName - Name of Collection
 	 * @param {Filter<T extends Document>} filterCondition - Condition to filter documents
-	 * @param {CountDocumentsOptions} - Find options
+	 * @param {CountDocumentsOptions} countOptions - Find options
 	 */
 	async countDocuments<T extends Document>(
 		collectionName: string,
@@ -408,7 +407,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		countOptions: CountDocumentsOptions = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const count = await collection.countDocuments(filterCondition, countOptions);
 
 			return count;
@@ -424,7 +423,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * @param {Filter<T extends Document>} filterCondition - Condition to filter documents
 	 * @param {number} skip - No of documents to skip
 	 * @param {number} limit - No of documents to return at once.
-	 * @param {FindOptions<T extends Document>} - Find options
+	 * @param {FindOptions<T extends Document>} findOptions - Find options
 	 */
 	async fetchAll<T extends Document>(
 		collectionName: string,
@@ -434,7 +433,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		findOptions: FindOptions<T> = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection
 				.find(filterCondition, findOptions)
 				.skip(skip)
@@ -456,7 +455,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * @param {Sort} sortCriteria - Sort criteria
 	 * @param {number} skip - No of documents to skip
 	 * @param {number} limit - No of documents to return at once.
-	 * @param {FindOptions<T extends Document>} - Find options
+	 * @param {FindOptions<T extends Document>} findOptions - Find options
 	 */
 	async fetchAllAndSort<T extends Document>(
 		collectionName: string,
@@ -467,7 +466,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		findOptions: FindOptions<T> = {}
 	) {
 		try {
-			const collection = await this.getCollection<T>(collectionName);
+			const collection = this.getCollection<T>(collectionName);
 			const r = await collection
 				.find(filterCondition, findOptions)
 				.skip(skip)
@@ -499,12 +498,12 @@ class MongoDb implements DbInterface<MongoDb> {
 				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG].auto_encrypt;
 
 			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
-			const dataToEncrypt = cloneDeep(data) as OptionalUnlessRequiredId<T>;
+			const dataToEncrypt = cloneDeep(data);
 
-			const dataToReturn = cloneDeep(data) as OptionalUnlessRequiredId<T>;
+			const dataToReturn = cloneDeep(data);
 			delete dataToEncrypt["_id"];
 
-			if (includeFields?.length && autoEncrypt) {
+			if (includeFields.length && autoEncrypt) {
 				await Promise.all(
 					includeFields.map(async (key) => {
 						await this.encryptAndMaskValue(
@@ -517,10 +516,10 @@ class MongoDb implements DbInterface<MongoDb> {
 						);
 					})
 				);
-			} else if (excludeFields?.length && autoEncrypt) {
+			} else if (excludeFields.length && autoEncrypt) {
 				await Promise.all(
 					Object.keys(dataToEncrypt).map(async (key) => {
-						if (excludeFields?.indexOf(key) == -1) {
+						if (excludeFields.indexOf(key) == -1) {
 							await this.encryptAndMaskValue(
 								key,
 								collectionName,
@@ -576,20 +575,15 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async recursiveEncrypt(
-		collectionName: string,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		obj: { key: string; value: any },
-		path?: string
-	) {
+	private async recursiveEncrypt(collectionName: string, obj: object, path?: string) {
 		try {
 			await Promise.all(
 				Object.entries(obj).map(async ([key, value]) => {
-					if (isObjectOrArray(value)) {
+					if (isObjectOrArray(value as object)) {
 						path ? path + `.${key}` : key;
-						await this.recursiveEncrypt(collectionName, value, path);
+						await this.recursiveEncrypt(collectionName, value as object, path);
 					} else {
-						set(obj, path || key, await this.encryptValue(collectionName, value));
+						set(obj, path || key, await this.encryptValue(collectionName, value as string));
 					}
 				})
 			);
@@ -610,7 +604,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return dataToEncrypt;
 			}
-			const valueToEncrypt = get(dataToEncrypt, key.split("."));
+			const valueToEncrypt = get(dataToEncrypt, key.split(".")) as object | undefined;
 			let encryptedValue;
 			if (valueToEncrypt) {
 				if (isObjectOrArray(valueToEncrypt)) {
@@ -668,7 +662,7 @@ class MongoDb implements DbInterface<MongoDb> {
 					"*".repeat(size(value.split("@")[0])) + "@" + value.split("@")[1]
 				);
 			} else {
-				set(dataToReturn, key.split("."), "*".repeat(size(get(dataToEncrypt, key.split(".")))));
+				set(dataToReturn, key.split("."), "*".repeat(size(value)));
 			}
 		}
 	}
@@ -694,16 +688,16 @@ class MongoDb implements DbInterface<MongoDb> {
 			const dataToDecrypt = cloneDeep(data);
 			delete dataToDecrypt["_id"];
 
-			if (includeFields?.length && autoDecrypt) {
+			if (includeFields.length && autoDecrypt) {
 				await Promise.all(
 					includeFields.map(async (key) => {
 						await this.decryptForKey<T>(key, dataToDecrypt, data, clientEncryption);
 					})
 				);
-			} else if (excludeFields?.length && autoDecrypt) {
+			} else if (excludeFields.length && autoDecrypt) {
 				await Promise.all(
 					Object.keys(dataToDecrypt).map(async (key) => {
-						if (excludeFields?.indexOf(key) == -1) {
+						if (excludeFields.indexOf(key) == -1) {
 							await this.decryptForKey<T>(key, dataToDecrypt, data, clientEncryption);
 						}
 					})
@@ -726,13 +720,13 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Decrypts Value
 	 * @param value - Value to Decrypt
 	 */
-	async decryptValue(value: Binary) {
+	async decryptValue<T>(value: Binary) {
 		try {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return value;
 			}
 			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
-			const decryptedValue = await clientEncryption.decrypt(value);
+			const decryptedValue = await clientEncryption.decrypt<T>(value);
 			return decryptedValue;
 		} catch (err) {
 			logger.error("Error occurred in decryptValue: %o", err);
@@ -740,19 +734,19 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async recursiveDecrypt(
+	private async recursiveDecrypt<T>(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		obj: { key: string; value: any },
+		obj: object,
 		path?: string
 	) {
 		try {
 			await Promise.all(
 				Object.entries(obj).map(async ([key, value]) => {
-					if (isObjectOrArray(value)) {
+					if (isObjectOrArray(value as object)) {
 						path ? path + `.${key}` : key;
-						await this.recursiveDecrypt(value, path);
+						await this.recursiveDecrypt(value as object, path);
 					} else {
-						set(obj, path || key, await this.decryptValue(value));
+						set(obj, path || key, await this.decryptValue<T>(value as Binary));
 					}
 				})
 			);
@@ -769,14 +763,14 @@ class MongoDb implements DbInterface<MongoDb> {
 		clientEncryption: ClientEncryption
 	) {
 		try {
-			const valueToDecrypt = get(dataToDecrypt, key.split("."));
+			const valueToDecrypt = get(dataToDecrypt, key.split(".")) as object | undefined;
 			let decryptedValue;
 			if (valueToDecrypt) {
 				if (isObjectOrArray(valueToDecrypt)) {
 					await this.recursiveDecrypt(valueToDecrypt);
 					decryptedValue = valueToDecrypt;
 				} else {
-					decryptedValue = await clientEncryption.decrypt(valueToDecrypt);
+					decryptedValue = await clientEncryption.decrypt<T>(valueToDecrypt as Binary);
 				}
 				set(
 					data,
