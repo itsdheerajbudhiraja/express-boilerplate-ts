@@ -1,8 +1,11 @@
-import express, { NextFunction, Request, Response, Router } from "express";
-import { authenticateDocsApiKey } from "../middlewares/authMiddleware.js";
-import swaggerUI from "swagger-ui-express";
+import type { NextFunction, Request, Response } from "express";
+
+import express, { Router } from "express";
 import { readFileSync } from "fs";
 import path from "path";
+import swaggerUI from "swagger-ui-express";
+
+import { authenticateDocsApiKey } from "../middlewares/authMiddleware.js";
 import { dirName } from "../utils/fileDirName.js";
 
 const router = Router();
@@ -10,7 +13,7 @@ const swaggerSpecs = JSON.parse(
 	readFileSync(path.join(dirName(import.meta), "../../swagger.json")).toString()
 );
 
-if (process.env.EXPOSE_SWAGGER_DOCS) {
+if (process.env.EXPOSE_SWAGGER_DOCS === true) {
 	/**
 	 * @openapi
 	 * /docs/swagger/{docsApiKey}/swagger.json:
@@ -46,7 +49,7 @@ if (process.env.EXPOSE_SWAGGER_DOCS) {
 	);
 }
 
-if (process.env.EXPOSE_SWAGGER_DOCS) {
+if (process.env.EXPOSE_SWAGGER_DOCS === true) {
 	/**
 	 * @openapi
 	 * /docs/swagger/{docsApiKey}:
@@ -111,7 +114,7 @@ if (process.env.EXPOSE_SWAGGER_DOCS) {
 	);
 }
 
-if (process.env.EXPOSE_TYPE_DOCS) {
+if (process.env.EXPOSE_TYPE_DOCS === true) {
 	/**
 	 * @openapi
 	 * /docs/typedoc/{docsApiKey}:
@@ -145,7 +148,7 @@ if (process.env.EXPOSE_TYPE_DOCS) {
 	);
 }
 
-if (process.env.EXPOSE_TEST_REPORTS) {
+if (process.env.EXPOSE_TEST_REPORTS === true) {
 	/**
 	 * @openapi
 	 * /docs/test-report/{docsApiKey}:

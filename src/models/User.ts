@@ -1,5 +1,9 @@
-import mongoose, { ValidatorProps } from "mongoose";
+import type { ValidatorProps } from "mongoose";
+
+import mongoose from "mongoose";
+
 import { validatePhoneNumber } from "../utils/validatePhoneNumber.js";
+
 const Schema = mongoose.Schema;
 
 const UserSchema = mongoose.model(

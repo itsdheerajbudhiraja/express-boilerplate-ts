@@ -1,20 +1,19 @@
-import {
-	AccessToken,
-	AuthenticationScheme,
-	JwtConstructorOptions,
-	RefreshToken,
-	Token
-} from "./types.js";
-import AuthInterface from "./AuthInterface.js";
-import { existsSync, readFileSync } from "fs";
-import path from "path";
-import jwt, { SignOptions, VerifyOptions, Algorithm } from "jsonwebtoken";
-import { logger } from "../winston_logger.js";
-import { parseDuration } from "../utils/parseDuration.js";
+import type AuthInterface from "./AuthInterface.js";
+import type { AccessToken, JwtConstructorOptions, RefreshToken, Token } from "./types.js";
+import type { SignOptions, VerifyOptions, Algorithm } from "jsonwebtoken";
+
 import crypto, { createPublicKey } from "crypto";
-import { db } from "../db/index.js";
+import { existsSync, readFileSync } from "fs";
+import jwt from "jsonwebtoken";
+import path from "path";
+
 import { REFRESH_TOKENS_COLLECTION } from "../constants.js";
+import { db } from "../db/index.js";
 import { dirName } from "../utils/fileDirName.js";
+import { parseDuration } from "../utils/parseDuration.js";
+import { logger } from "../winston_logger.js";
+
+import { AuthenticationScheme } from "./types.js";
 
 class JWT implements AuthInterface {
 	private keyDirectoryPath: string;
@@ -150,10 +149,8 @@ class JWT implements AuthInterface {
 			const accessTokenValue = jwt.sign(data, this.privateKey, this.signOptions);
 			const accessToken: AccessToken = {
 				value: accessTokenValue,
-				created_at: new Date().toISOString(),
-				expiration_time: new Date(
-					new Date().getTime() + parseDuration(this.expiryTime)
-				).toISOString()
+				created_at: new Date(),
+				expiration_time: new Date(new Date().getTime() + parseDuration(this.expiryTime))
 			};
 
 			if (refresh) {
@@ -162,10 +159,10 @@ class JWT implements AuthInterface {
 					user_id: (data as { user_id: string })["user_id"],
 					access_token: accessToken.value,
 					previous_refresh_token: previousRefreshToken,
-					created_at: new Date().toISOString(),
+					created_at: new Date(),
 					expiration_time: new Date(
 						new Date().getTime() + parseDuration(this.refreshTokenExpiryTime)
-					).toISOString()
+					)
 				};
 
 				await db.insertOne<RefreshToken>(REFRESH_TOKENS_COLLECTION, refreshToken);
@@ -188,8 +185,10 @@ class JWT implements AuthInterface {
 	/**
 	 * Validates the JWT token signature using public key
 	 */
-	validateToken(token: string): string | jwt.Jwt | jwt.JwtPayload {
+	validateToken(token: string, ignoreExpiration?: boolean): string | jwt.Jwt | jwt.JwtPayload {
 		try {
+			this.verifyOptions.ignoreExpiration = ignoreExpiration ?? this.verifyOptions.ignoreExpiration;
+
 			const verifiedResponse = jwt.verify(token, this.publicKey, this.verifyOptions);
 			return verifiedResponse;
 		} catch (err) {

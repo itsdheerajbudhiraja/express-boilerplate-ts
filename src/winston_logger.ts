@@ -1,7 +1,8 @@
-import winston from "winston";
 import "winston-daily-rotate-file";
-import { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
-import { ConsoleTransportOptions } from "winston/lib/winston/transports/index.js";
+import type { ConsoleTransportOptions } from "winston/lib/winston/transports/index.js";
+import type { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
+
+import winston from "winston";
 
 const colorizer = winston.format.colorize();
 

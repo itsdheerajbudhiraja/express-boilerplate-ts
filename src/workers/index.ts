@@ -1,8 +1,11 @@
-import { logger } from "../winston_logger.js";
-import workerpool, { Pool } from "workerpool";
+import type { Pool } from "workerpool";
+
 import os from "os";
 import { join } from "path";
+import workerpool from "workerpool";
+
 import { dirName } from "../utils/fileDirName.js";
+import { logger } from "../winston_logger.js";
 
 const cpuCount = os.cpus().length;
 
@@ -33,7 +36,7 @@ function createOrGetPool({
 				maxWorkers: maxPoolSize
 			});
 
-			setInterval(async () => {
+			setInterval(() => {
 				const poolStats = worker_pool.stats();
 				logger.debug(
 					`Stats for worker pool: \nTotal Workers: ${poolStats.totalWorkers}\nBusy Workers:${poolStats.busyWorkers}\nIdle Workers: ${poolStats.idleWorkers}\nPending tasks: ${poolStats.pendingTasks}\nActive Tasks: ${poolStats.activeTasks}`

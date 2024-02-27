@@ -1,5 +1,6 @@
+import type { ApiFailureResponse } from "../types/ApiResponse.js";
+
 import { Failure } from "../constants.js";
-import { ApiFailureResponse } from "../types/ApiFailureResponse.js";
 
 function failureResponse(message: string): ApiFailureResponse {
 	return {

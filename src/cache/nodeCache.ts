@@ -1,9 +1,10 @@
+import type { CacheInterface } from "./CacheInterface.js";
+
 import * as Node_Cache from "node-cache";
-import { CacheInterface } from "./CacheInterface.js";
 
 class NodeCache implements CacheInterface<NodeCache> {
 	private static instances: {
-		[key: string]: NodeCache;
+		[key: string]: NodeCache | undefined;
 	} = {};
 
 	cache: Node_Cache;

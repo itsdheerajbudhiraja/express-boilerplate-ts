@@ -1,9 +1,9 @@
 function isObject(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == Object;
+	return obj.constructor == Object;
 }
 
 function isArray(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == Array;
+	return obj.constructor == Array;
 }
 
 function isObjectOrArray(obj: object) {
@@ -11,26 +11,22 @@ function isObjectOrArray(obj: object) {
 }
 
 function isBoolean(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == Boolean;
+	return obj.constructor == Boolean;
 }
 
 function isFunction(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == Function;
+	return obj.constructor == Function;
 }
 
 function isNumber(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == Number;
+	return obj.constructor == Number;
 }
 
 function isString(obj: object) {
-	return obj !== undefined && obj !== null && obj.constructor == String;
+	return obj.constructor == String;
 }
 
 function isInstanced(obj: object) {
-	if (obj === undefined || obj === null) {
-		return false;
-	}
-
 	if (isArray(obj)) {
 		return false;
 	}

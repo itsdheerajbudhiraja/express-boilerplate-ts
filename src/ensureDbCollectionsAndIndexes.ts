@@ -1,14 +1,17 @@
-import { ClientEncryption, ClientEncryptionCreateDataKeyProviderOptions } from "mongodb";
-import { db } from "./db/index.js";
-import { logger } from "./winston_logger.js";
-import { CreateIndexesOptions, IndexSpecification } from "mongodb";
-import { CLIENT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIG } from "./db/encryptionConfig.js";
-import { REFRESH_TOKENS_COLLECTION } from "./constants.js";
+import type { ClientEncryptionCreateDataKeyProviderOptions } from "mongodb";
+import type { CreateIndexesOptions, IndexSpecification } from "mongodb";
+
 import { readdir } from "fs/promises";
+import { ClientEncryption } from "mongodb";
 import { join } from "path";
-import { dirName } from "./utils/fileDirName.js";
-import { EntityCollectionUndefinedError } from "./errors/EntityCollectionUndefinedError.js";
+
+import { REFRESH_TOKENS_COLLECTION } from "./constants.js";
+import { CLIENT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIG } from "./db/encryptionConfig.js";
+import { db } from "./db/index.js";
 import { BaseEntity } from "./entities/BaseEntity.js";
+import { EntityCollectionUndefinedError } from "./errors/EntityCollectionUndefinedError.js";
+import { dirName } from "./utils/fileDirName.js";
+import { logger } from "./winston_logger.js";
 
 const ensureDbCollectionsAndIndexes = async function ensureDbCollectionsAndIndexes() {
 	// Ensure all entity class have collection name defined.

@@ -38,11 +38,7 @@ interface DbInterface<T> {
 	decryptValue(data: any): Promise<any>;
 
 	/** findCursor is needed for mongodb like databases */
-	findCursor?(
-		tableName: string,
-		filterCondition: any,
-		options: any
-	): Promise<FindCursor<WithId<Document>>>;
+	findCursor?(tableName: string, filterCondition: any, options: any): FindCursor<WithId<Document>>;
 }
 
 export default DbInterface;

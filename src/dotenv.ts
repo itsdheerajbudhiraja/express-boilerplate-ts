@@ -1,11 +1,12 @@
 // Reading .env file
+import chalk from "chalk";
+import { ColorTranslator } from "colortranslator";
 import dotenv from "dotenv";
 import dotenvParseVariables from "dotenv-parse-variables";
-import path from "path";
-import { dirName } from "./utils/fileDirName.js";
-import chalk from "chalk";
 import figlet from "figlet";
-import { ColorTranslator } from "colortranslator";
+import path from "path";
+
+import { dirName } from "./utils/fileDirName.js";
 
 const envFile = process.env.ENV_FILE || ".env";
 

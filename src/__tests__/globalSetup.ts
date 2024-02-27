@@ -1,7 +1,8 @@
 import "../dotenv.js";
-import { logger } from "../winston_logger.js";
+
 import { db } from "../db/index.js";
 import { ensureDbCollectionsAndIndexes } from "../ensureDbCollectionsAndIndexes.js";
+import { logger } from "../winston_logger.js";
 
 export default async function globalSetup() {
 	try {

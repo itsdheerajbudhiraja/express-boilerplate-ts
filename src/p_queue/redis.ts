@@ -1,11 +1,14 @@
+import type { QueueInterface } from "./QueueInterface.js";
+import type { Cluster } from "ioredis";
+
+import { Redis as RedisClient } from "ioredis";
 import sleep from "sleep-promise";
-import { logger } from "../winston_logger.js";
-import { QueueInterface } from "./QueueInterface.js";
-import { Cluster, Redis as RedisClient } from "ioredis";
 import { v4 } from "uuid";
 
+import { logger } from "../winston_logger.js";
+
 class Redis implements QueueInterface<Redis> {
-	private static instance: Redis;
+	private static instance: Redis | undefined;
 
 	client = <Cluster | RedisClient>{};
 	connection_string = "";
@@ -25,7 +28,7 @@ class Redis implements QueueInterface<Redis> {
 		this.consumer_name = v4();
 	}
 
-	public static getInstance(): Redis {
+	public static getInstance(): Redis | undefined {
 		return Redis.instance;
 	}
 
@@ -139,7 +142,7 @@ class Redis implements QueueInterface<Redis> {
 			logger.error("Error occurred in get: %o", err);
 			throw err;
 		} finally {
-			newClient.quit();
+			await newClient.quit();
 		}
 	}
 

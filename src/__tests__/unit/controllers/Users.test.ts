@@ -1,7 +1,8 @@
+import { jest } from "@jest/globals";
 import { StatusCodes } from "http-status-codes";
 import supertest from "supertest";
+
 import { app } from "../../../routes/app.js";
-import { jest } from "@jest/globals";
 
 const testApp = supertest(app);
 

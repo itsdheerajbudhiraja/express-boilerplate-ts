@@ -123,7 +123,7 @@ describe("User Entity", () => {
 		describe("delete user from database", () => {
 			it("should delete user from database", async () => {
 				const deleteResult = User.deleteById(user._id as string);
-				expect(deleteResult).resolves.not.toThrow();
+				await expect(deleteResult).resolves.not.toThrow();
 			});
 		});
 

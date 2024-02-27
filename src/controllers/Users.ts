@@ -1,4 +1,9 @@
+import type { User } from "../entities/User.js";
+import type { ApiSuccessResponse, ApiFailureResponse } from "../types/ApiResponse.js";
+
+import express from "express";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
+import multer from "multer";
 import {
 	Body,
 	Controller,
@@ -14,17 +19,13 @@ import {
 	Response,
 	Request
 } from "tsoa";
-import express from "express";
-import { User } from "../entities/User.js";
+
+import { BadRequest } from "../errors/ApiError.js";
 import { ApiAuthType } from "../middlewares/authMiddleware.js";
 import { successResponse } from "../responses/successResponse.js";
 import { UsersService } from "../services/Users.js";
-import { ApiFailureResponse } from "../types/ApiFailureResponse.js";
-import { ApiSuccessResponse } from "../types/ApiSuccessResponse.js";
 import { UserCreationParams } from "../types/UserCreationParams.js";
-import multer from "multer";
 import { logger } from "../winston_logger.js";
-import { BadRequest } from "../errors/ApiError.js";
 
 @Route("/users")
 @Security(ApiAuthType.API_KEY)
@@ -102,7 +103,7 @@ export class UsersController extends Controller {
 		try {
 			const upload = multer({
 				storage: multer.memoryStorage(),
-				fileFilter: (req, file, cb) => {
+				fileFilter: (_req, file, cb) => {
 					if (
 						file.mimetype == "image/jpeg" ||
 						file.mimetype == "image/jpg" ||
