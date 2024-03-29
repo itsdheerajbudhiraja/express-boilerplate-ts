@@ -11,13 +11,7 @@ const supportedDbs = {
 const db_type = process.env.DB_TYPE as string;
 logger.debug("Database type: %o", db_type);
 
-const db_connection_string =
-	process.env.DB_CONNECTION_STRING === undefined
-		? (function () {
-				logger.error("DB_CONNECTION_STRING not found in environment variable");
-				process.exit(1);
-			})()
-		: process.env.DB_CONNECTION_STRING;
+const db_connection_string = process.env.DB_CONNECTION_STRING;
 logger.debug("Value of database connection string %o: ", db_connection_string);
 
 if (!(db_type in supportedDbs)) {

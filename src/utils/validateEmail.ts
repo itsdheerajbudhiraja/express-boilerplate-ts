@@ -8,9 +8,7 @@ async function validateEmail(email: string) {
 		const res = await emailValidator.validate({
 			email: email,
 			validateSMTP: false,
-			additionalTopLevelDomains: JSON.parse(
-				process.env.EMAIL_VALIDATOR_ADDITIONAL_TLDS as string
-			) as unknown as string[]
+			additionalTopLevelDomains: process.env.EMAIL_VALIDATOR_ADDITIONAL_TLDS
 		});
 		if (!res.valid) {
 			throw new ValidationError(

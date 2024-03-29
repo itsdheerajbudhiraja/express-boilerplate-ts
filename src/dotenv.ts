@@ -2,15 +2,20 @@
 import chalk from "chalk";
 import { ColorTranslator } from "colortranslator";
 import dotenv from "dotenv";
+import dotenvExpand from "dotenv-expand";
 import dotenvParseVariables from "dotenv-parse-variables";
 import figlet from "figlet";
 import path from "path";
+import typia from "typia";
 
 import { dirName } from "./utils/fileDirName.js";
 
 const envFile = process.env.ENV_FILE || ".env";
 
-const env = dotenv.config({ path: path.join(dirName(import.meta), `../${envFile}`) });
+const env = dotenvExpand.expand(
+	dotenv.config({ path: path.join(dirName(import.meta), `../${envFile}`) })
+);
+
 if (env.error) {
 	console.error(env.error);
 	process.exit(1);
@@ -41,4 +46,15 @@ console.log(
 	chalk.hex(new ColorTranslator(APPLICATION_DESCRIPTION_COLOR).HEX)(` ${APPLICATION_DESCRIPTION}\n`)
 );
 
-export default env;
+const validationResult = typia.validate<NodeJS.ProcessEnv>(process.env);
+if (validationResult.errors.length) {
+	console.error(
+		chalk.hex(new ColorTranslator("red").HEX)(
+			"Error occurred in type casting environment variables: " +
+				JSON.stringify(validationResult.errors, null, 4)
+		)
+	);
+	process.exit(1);
+}
+
+export default envParsed;

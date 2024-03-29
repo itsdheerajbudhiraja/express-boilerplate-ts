@@ -1,4 +1,4 @@
-FROM node:18.16.0
+FROM node:20.12.0
 
 # Add a new user "nodeapp"
 RUN useradd nodeapp

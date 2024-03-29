@@ -33,9 +33,9 @@ app.use(responseMiddleware);
 app.use(
 	cors({
 		origin: function (origin, callback) {
-			if (origin && JSON.parse(process.env.CORS_ORIGIN as string).indexOf(origin) !== -1) {
+			if (origin && process.env.CORS_ORIGIN.indexOf(origin) !== -1) {
 				callback(null, true);
-			} else if (origin && JSON.parse(process.env.CORS_ORIGIN as string).indexOf("*") !== -1) {
+			} else if (origin && process.env.CORS_ORIGIN.indexOf("*") !== -1) {
 				callback(null, true);
 			} else {
 				callback(null, false);

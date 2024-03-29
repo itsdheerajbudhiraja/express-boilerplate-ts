@@ -146,6 +146,10 @@ class Redis implements QueueInterface<Redis> {
 		}
 	}
 
+	async getCurrentQueueLength(queueName: string): Promise<number> {
+		return await this.client.xlen(queueName);
+	}
+
 	private async ensureConsumerGroup(queueName: string) {
 		await this.client.xgroup("CREATE", queueName, this.group_name, "0", "MKSTREAM").catch((err) => {
 			if (err.message.includes("already exists")) {

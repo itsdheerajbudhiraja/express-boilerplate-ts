@@ -75,49 +75,10 @@ class JWT implements AuthInterface {
 				);
 			}
 
-			if (process.env.AUTHENTICATION_SCHEME) {
-				if (process.env.AUTHENTICATION_SCHEME in AuthenticationScheme) {
-					this.authenticationScheme =
-						AuthenticationScheme[process.env.AUTHENTICATION_SCHEME as AuthenticationScheme];
-				} else {
-					throw new Error(
-						`Supplied AUTHENTICATION_SCHEME ${
-							process.env.AUTHENTICATION_SCHEME
-						} in .env is not supported, It can be one of:
-							${JSON.stringify(Object.keys(AuthenticationScheme))}`
-					);
-				}
-			} else {
-				this.authenticationScheme = AuthenticationScheme.Bearer;
-			}
-			const supportedAlgos = [
-				"HS256",
-				"HS384",
-				"HS512",
-				"RS256",
-				"RS384",
-				"RS512",
-				"ES256",
-				"ES384",
-				"ES512",
-				"PS256",
-				"PS384",
-				"PS512",
-				"none"
-			];
-			if (process.env.JWT_ALGORITHM) {
-				if (supportedAlgos.indexOf(process.env.JWT_ALGORITHM) !== -1) {
-					this.algorithm = process.env.JWT_ALGORITHM as Algorithm;
-				} else {
-					throw new Error(
-						`Supplied JWT_ALGORITHM ${
-							process.env.JWT_ALGORITHM
-						} in .env not supported. It can be one of following: ${JSON.stringify(supportedAlgos)}`
-					);
-				}
-			} else {
-				this.algorithm = "RS256";
-			}
+			this.authenticationScheme = AuthenticationScheme[process.env.AUTHENTICATION_SCHEME];
+
+			this.algorithm = process.env.JWT_ALGORITHM;
+
 			this.expiryTime = options?.expiryTime || process.env.JWT_EXPIRY_TIME || "1h";
 			this.refreshTokenExpiryTime =
 				options?.refreshTokenExpiryTime || process.env.JWT_REFRESH_TOKEN_EXPIRY_TIME || "7d";

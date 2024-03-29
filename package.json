@@ -1,128 +1,130 @@
 {
-	"name": "express-boilerplate-ts",
-	"version": "1.0.0",
-	"description": "This is root readme for project",
-	"main": "src/index.ts",
-	"type": "module",
-	"scripts": {
-		"build-rust-wasm": "wasm-pack build --target web rust-wasm-libs && echo \"`jq '.type=\"module\"' rust-wasm-libs/pkg/package.json`\" > rust-wasm-libs/pkg/package.json && echo \"`jq '.main=\"rust_wasm_libs.js\"' rust-wasm-libs/pkg/package.json`\" > rust-wasm-libs/pkg/package.json",
-		"test": "tsoa spec-and-routes && tsc -p . && ENV_FILE=.env.test node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles",
-		"test-backup": "ENV_FILE=.env.test jest --detectOpenHandles",
-		"start": "npm run build && node dist/index.js",
-		"doc": "typedoc",
-		"swagger": "node dist/createSwaggerJson.js",
-		"dev": "nodemon src/index.ts",
-		"lint": "eslint . --ext .ts",
-		"lint-fix": "eslint . --ext .ts --fix",
-		"prettier-check": "prettier --check ./src",
-		"prettier-fix": "prettier --write ./src",
-		"build": "tsoa spec-and-routes && tsc -p . && npm run doc",
-		"prod": "node dist/index.js",
-		"prepare": "husky install"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/itsdheerajbudhiraja/express-boilerplate-ts.git"
-	},
-	"author": {
-		"name": "Dheeraj Budhiraja",
-		"email": "itsdheerajbudhiraja@gmail.com"
-	},
-	"contributors": [
-		{
-			"name": "Dheeraj Budhiraja",
-			"email": "itsdheerajbudhiraja@gmail.com"
-		}
-	],
-	"license": "ISC",
-	"dependencies": {
-		"axios": "^1.6.7",
-		"chalk": "^5.3.0",
-		"colortranslator": "^4.1.0",
-		"cookie-parser": "^1.4.6",
-		"cors": "^2.8.5",
-		"deep-email-validator": "^0.1.21",
-		"deepmerge": "^4.3.1",
-		"dotenv": "^16.4.5",
-		"dotenv-parse-variables": "^2.0.0",
-		"es-main": "^1.3.0",
-		"express": "^4.18.2",
-		"express-mongo-sanitize": "^2.2.0",
-		"figlet": "^1.7.0",
-		"helmet": "^7.1.0",
-		"http-status-codes": "^2.3.0",
-		"ioredis": "^5.3.2",
-		"jest": "^29.7.0",
-		"jsonwebtoken": "^9.0.2",
-		"lodash": "^4.17.21",
-		"mongodb": "^6.3.0",
-		"mongodb-client-encryption": "^6.0.0",
-		"mongoose": "^8.2.0",
-		"multer": "1.4.5-lts.1",
-		"node-cache": "^5.1.2",
-		"phone": "^3.1.42",
-		"rust-wasm-libs": "file:rust-wasm-libs/pkg",
-		"sleep-promise": "^9.1.0",
-		"supertest": "^6.3.4",
-		"swagger-jsdoc": "^6.2.8",
-		"swagger-ui-express": "^5.0.0",
-		"tsoa": "^6.0.1",
-		"uuid": "^9.0.1",
-		"winston": "^3.11.0",
-		"winston-daily-rotate-file": "^5.0.0",
-		"workerpool": "^9.1.0"
-	},
-	"devDependencies": {
-		"@types/cookie-parser": "^1.4.6",
-		"@types/cors": "^2.8.17",
-		"@types/deepmerge": "^2.2.0",
-		"@types/dotenv-parse-variables": "^2.0.3",
-		"@types/express": "^4.17.21",
-		"@types/figlet": "^1.5.8",
-		"@types/jest": "^29.5.12",
-		"@types/jsonwebtoken": "^9.0.6",
-		"@types/lodash": "^4.14.202",
-		"@types/node": "^20.11.20",
-		"@types/supertest": "^6.0.2",
-		"@types/swagger-jsdoc": "^6.0.4",
-		"@types/swagger-ui-express": "^4.1.6",
-		"@types/uuid": "^9.0.8",
-		"@types/workerpool": "^6.4.7",
-		"@typescript-eslint/eslint-plugin": "^7.1.0",
-		"@typescript-eslint/parser": "^7.1.0",
-		"commitizen": "^4.3.0",
-		"cz-conventional-changelog": "^3.3.0",
-		"eslint": "^8.57.0",
-		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-import": "^2.29.1",
-		"husky": "^9.0.11",
-		"jest-html-reporters": "^3.1.7",
-		"lint-staged": "^15.2.2",
-		"nodemon": "^3.1.0",
-		"prettier": "^3.2.5",
-		"ts-jest": "^29.1.2",
-		"ts-node": "^10.9.2",
-		"typedoc": "^0.25.9",
-		"typedoc-plugin-extras": "^3.0.0",
-		"typedoc-plugin-rename-defaults": "^0.7.0",
-		"typedoc-theme-hierarchy": "^4.1.2",
-		"typescript": "^5.3.3"
-	},
-	"lint-staged": {
-		"src/**/*.ts": [
-			"npm run prettier-fix",
-			"npm run lint-fix"
-		]
-	},
-	"config": {
-		"commitizen": {
-			"path": "./node_modules/cz-conventional-changelog"
-		}
-	},
-	"overrides": {
-		"deep-email-validator": {
-			"axios": "^1.6.7"
-		}
-	},
-	"packageManager": "yarn@4.1.0"
+  "name": "express-boilerplate-ts",
+  "version": "1.0.0",
+  "description": "This is root readme for project",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build-rust-wasm": "wasm-pack build --target web rust-wasm-libs && echo \"`jq '.type=\"module\"' rust-wasm-libs/pkg/package.json`\" > rust-wasm-libs/pkg/package.json && echo \"`jq '.main=\"rust_wasm_libs.js\"' rust-wasm-libs/pkg/package.json`\" > rust-wasm-libs/pkg/package.json",
+    "test": "tsoa spec-and-routes && tsc -p . && ENV_FILE=.env.test node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles",
+    "test-backup": "ENV_FILE=.env.test jest --detectOpenHandles",
+    "start": "npm run build && node dist/index.js",
+    "doc": "typedoc",
+    "swagger": "node dist/createSwaggerJson.js",
+    "dev": "nodemon src/index.ts",
+    "lint": "eslint . --ext .ts",
+    "lint-fix": "eslint . --ext .ts --fix",
+    "prettier-check": "prettier --check ./src",
+    "prettier-fix": "prettier --write ./src",
+    "build": "tsoa spec-and-routes && tsc -p . && npm run doc",
+    "prod": "node dist/index.js",
+    "prepare": "ts-patch install && typia patch && husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itsdheerajbudhiraja/express-boilerplate-ts.git"
+  },
+  "author": {
+    "name": "Dheeraj Budhiraja",
+    "email": "itsdheerajbudhiraja@gmail.com"
+  },
+  "contributors": [
+    {
+      "name": "Dheeraj Budhiraja",
+      "email": "itsdheerajbudhiraja@gmail.com"
+    }
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "chalk": "^5.3.0",
+    "colortranslator": "^4.1.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "deep-email-validator": "^0.1.21",
+    "deepmerge": "^4.3.1",
+    "dotenv": "^16.4.5",
+    "dotenv-expand": "^11.0.6",
+    "dotenv-parse-variables": "^2.0.0",
+    "es-main": "^1.3.0",
+    "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "figlet": "^1.7.0",
+    "helmet": "^7.1.0",
+    "http-status-codes": "^2.3.0",
+    "ioredis": "^5.3.2",
+    "jest": "^29.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "mongodb": "^6.5.0",
+    "mongodb-client-encryption": "^6.0.0",
+    "mongoose": "^8.2.4",
+    "multer": "1.4.5-lts.1",
+    "node-cache": "^5.1.2",
+    "phone": "^3.1.42",
+    "rust-wasm-libs": "file:rust-wasm-libs/pkg",
+    "sleep-promise": "^9.1.0",
+    "supertest": "^6.3.4",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "tsoa": "^6.2.0",
+    "typia": "^5.5.7",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "workerpool": "^9.1.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/deepmerge": "^2.2.0",
+    "@types/dotenv-parse-variables": "^2.0.3",
+    "@types/express": "^4.17.21",
+    "@types/figlet": "^1.5.8",
+    "@types/jest": "^29.5.12",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/lodash": "^4.17.0",
+    "@types/node": "^20.11.30",
+    "@types/supertest": "^6.0.2",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^9.0.8",
+    "@types/workerpool": "^6.4.7",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
+    "@typescript-eslint/parser": "^7.4.0",
+    "commitizen": "^4.3.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "husky": "^9.0.11",
+    "jest-html-reporters": "^3.1.7",
+    "lint-staged": "^15.2.2",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "ts-patch": "^3.1.2",
+    "typedoc": "^0.25.12",
+    "typedoc-plugin-extras": "^3.0.0",
+    "typedoc-plugin-rename-defaults": "^0.7.0",
+    "typedoc-theme-hierarchy": "^4.1.2",
+    "typescript": "^5.4.2"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "npm run prettier-fix",
+      "npm run lint-fix"
+    ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "overrides": {
+    "deep-email-validator": {
+      "axios": "^1.6.8"
+    }
+  }
 }

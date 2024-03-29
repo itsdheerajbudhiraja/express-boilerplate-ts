@@ -17,7 +17,7 @@ export function authorize(req: Request, res: Response, next: NextFunction) {
 		let token;
 		if (authorization && authorization.startsWith(authenticationScheme)) {
 			token = authorization.split(" ")[1];
-		} else if (req.cookies?.accessToken) {
+		} else if (req.cookies.accessToken) {
 			token = req.cookies.accessToken;
 		}
 		if (!token) {
@@ -119,7 +119,7 @@ export async function expressAuthentication(
 			let token;
 			if (authorization && authorization.startsWith(authenticationScheme)) {
 				token = authorization.split(" ")[1];
-			} else if (req.cookies?.accessToken) {
+			} else if (req.cookies.accessToken) {
 				token = req.cookies.accessToken;
 			}
 			if (!token) {

@@ -49,14 +49,14 @@ const sanitize = (value: string) => {
 
 const options = {
 	console: <ConsoleTransportOptions>{
-		level: process.env.LOG_LEVEL_CONSOLE || "info",
+		level: process.env.LOG_LEVEL_CONSOLE,
 		handleExceptions: true,
 		json: false,
 		colorize: true,
 		format: winston.format.combine(alignColorsAndTimeForConsole)
 	},
 	file: <DailyRotateFileTransportOptions>{
-		level: process.env.LOG_LEVEL_FILE || "silly",
+		level: process.env.LOG_LEVEL_FILE,
 		filename: "app_%DATE%.log",
 		dirname: "logs",
 		datePattern: "YYYY-MM-DDTHH:mm:ss",

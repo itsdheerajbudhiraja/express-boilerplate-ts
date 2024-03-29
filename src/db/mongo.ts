@@ -10,7 +10,9 @@ import type {
 	FindOneAndReplaceOptions,
 	FindOneAndUpdateOptions,
 	FindOptions,
+	InsertManyResult,
 	InsertOneOptions,
+	InsertOneResult,
 	OptionalUnlessRequiredId,
 	Sort,
 	UpdateFilter,
@@ -39,6 +41,7 @@ class MongoDb implements DbInterface<MongoDb> {
 	mongoClient = <MongoClient>{};
 	dbName = "";
 	connection_string = "";
+	clientEncryption: ClientEncryption;
 
 	constructor(connection_string: string) {
 		MongoDb.instance = this;
@@ -47,6 +50,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			autoEncryption: { bypassAutoEncryption: true, ...CLIENT_ENCRYPTION_CONFIG }
 		});
 		this.dbName = this.mongoClient.options.dbName;
+		this.clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
 	}
 
 	public static getInstance() {
@@ -110,15 +114,21 @@ class MongoDb implements DbInterface<MongoDb> {
 	) {
 		try {
 			const collection = this.getCollection<T>(collectionName);
-			let dataToInsert = cloneDeep(data);
 			const collectionEncryptionConfig =
-				collectionName in ENCRYPTION_CONFIG && ENCRYPTION_CONFIG[collectionName];
+				collectionName in ENCRYPTION_CONFIG &&
+				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
 
+			let r: InsertOneResult<T>;
 			if (collectionEncryptionConfig) {
-				dataToInsert = await this.encrypt(collectionName, dataToInsert);
-			}
+				logger.debug("Cloning data for encryption");
+				let dataToInsert = cloneDeep(data);
+				logger.debug("Cloned data for encryption");
 
-			const r = await collection.insertOne(dataToInsert, options);
+				dataToInsert = await this.encrypt(collectionName, dataToInsert);
+				r = await collection.insertOne(dataToInsert, options);
+			} else {
+				r = await collection.insertOne(data, options);
+			}
 
 			logger.debug(
 				"Inserted %o documents into the collection %o, inserted id : %o",
@@ -146,19 +156,29 @@ class MongoDb implements DbInterface<MongoDb> {
 	) {
 		try {
 			const collection = this.getCollection<T>(collectionName);
-			let dataToInsert = cloneDeep(data);
 			const collectionEncryptionConfig =
-				collectionName in ENCRYPTION_CONFIG && ENCRYPTION_CONFIG[collectionName];
+				collectionName in ENCRYPTION_CONFIG &&
+				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
 
+			let r: InsertManyResult<T>;
 			if (collectionEncryptionConfig) {
+				logger.debug("Cloning data for encryption");
+				let dataToInsert = cloneDeep(data);
+				logger.debug("Cloned data for encryption");
+
+				logger.debug("Starting encryption for %o records", data.length);
 				dataToInsert = await Promise.all(
 					dataToInsert.map(async (record) => {
 						const encryptedData = await this.encrypt(collectionName, record);
 						return encryptedData;
 					})
 				);
+				logger.debug("Completed encryption for %o records", data.length);
+
+				r = await collection.insertMany(dataToInsert, options);
+			} else {
+				r = await collection.insertMany(data, options);
 			}
-			const r = await collection.insertMany(dataToInsert, options);
 
 			logger.debug("Inserted %o documents into the collection %o", r.insertedCount, collectionName);
 			return r;
@@ -334,7 +354,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			const collection = this.getCollection<T>(collectionName);
 			const r = await collection.findOneAndDelete(filterCondition, { ...options });
 
-			logger.debug("Find and deleted document into the collection : %o", JSON.stringify(r?.value));
+			logger.debug("Find and deleted document into the collection : %o", JSON.stringify(r));
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndDelete: %o", err);
@@ -363,11 +383,8 @@ class MongoDb implements DbInterface<MongoDb> {
 				...options
 			});
 
-			logger.debug(
-				"Found and replaced document into the collection : %o",
-				JSON.stringify(r?.value)
-			);
-			return r as T;
+			logger.debug("Found and replaced document into the collection : %o", JSON.stringify(r));
+			return r;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndReplace: %o", err);
 			throw new Error("Insert record failed");
@@ -497,7 +514,6 @@ class MongoDb implements DbInterface<MongoDb> {
 			const autoEncrypt =
 				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG].auto_encrypt;
 
-			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
 			const dataToEncrypt = cloneDeep(data);
 
 			const dataToReturn = cloneDeep(data);
@@ -506,14 +522,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			if (includeFields.length && autoEncrypt) {
 				await Promise.all(
 					includeFields.map(async (key) => {
-						await this.encryptAndMaskValue(
-							key,
-							collectionName,
-							data,
-							dataToEncrypt,
-							dataToReturn,
-							clientEncryption
-						);
+						await this.encryptAndMaskValue(key, collectionName, data, dataToEncrypt, dataToReturn);
 					})
 				);
 			} else if (excludeFields.length && autoEncrypt) {
@@ -525,8 +534,7 @@ class MongoDb implements DbInterface<MongoDb> {
 								collectionName,
 								data,
 								dataToEncrypt,
-								dataToReturn,
-								clientEncryption
+								dataToReturn
 							);
 						}
 					})
@@ -534,14 +542,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			} else if (autoEncrypt) {
 				await Promise.all(
 					Object.keys(dataToEncrypt).map(async (key) => {
-						await this.encryptAndMaskValue(
-							key,
-							collectionName,
-							data,
-							dataToEncrypt,
-							dataToReturn,
-							clientEncryption
-						);
+						await this.encryptAndMaskValue(key, collectionName, data, dataToEncrypt, dataToReturn);
 					})
 				);
 			}
@@ -563,11 +564,12 @@ class MongoDb implements DbInterface<MongoDb> {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return value;
 			}
-			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
-			const encryptedValue = await clientEncryption.encrypt(value, {
+			logger.debug("Encrypting value");
+			const encryptedValue = await this.clientEncryption.encrypt(value, {
 				keyAltName: collectionName,
 				algorithm: CLIENT_ENCRYPTION_ALGORITHM
 			});
+			logger.debug("Encrypted value");
 			return encryptedValue;
 		} catch (err) {
 			logger.error("Error occurred in encryptValue: %o", err);
@@ -597,8 +599,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		collectionName: string,
 		key: string,
 		dataToEncrypt: object,
-		dataToReturn: object,
-		clientEncryption: ClientEncryption
+		dataToReturn: object
 	) {
 		try {
 			if (!process.env.DB_ENCRYPT_DATA) {
@@ -611,10 +612,12 @@ class MongoDb implements DbInterface<MongoDb> {
 					await this.recursiveEncrypt(collectionName, valueToEncrypt);
 					encryptedValue = valueToEncrypt;
 				} else {
-					encryptedValue = await clientEncryption.encrypt(valueToEncrypt, {
+					logger.debug("Encrypting value for key: %o", key);
+					encryptedValue = await this.clientEncryption.encrypt(valueToEncrypt, {
 						keyAltName: collectionName,
 						algorithm: CLIENT_ENCRYPTION_ALGORITHM
 					});
+					logger.debug("Encrypted value for key: %o", key);
 				}
 				set(
 					dataToReturn,
@@ -633,17 +636,10 @@ class MongoDb implements DbInterface<MongoDb> {
 		collectionName: string,
 		data: OptionalUnlessRequiredId<T>,
 		dataToEncrypt: OptionalUnlessRequiredId<T>,
-		dataToReturn: OptionalUnlessRequiredId<T>,
-		clientEncryption: ClientEncryption
+		dataToReturn: OptionalUnlessRequiredId<T>
 	) {
 		if (!has(dataToReturn, ["original_attributes", key])) {
-			await this.encryptForKey<T>(
-				collectionName,
-				key,
-				dataToEncrypt,
-				dataToReturn,
-				clientEncryption
-			);
+			await this.encryptForKey<T>(collectionName, key, dataToEncrypt, dataToReturn);
 		}
 		if (
 			data["data_masking_required" as keyof typeof data] &&
@@ -684,28 +680,27 @@ class MongoDb implements DbInterface<MongoDb> {
 			const autoDecrypt =
 				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG].auto_encrypt;
 
-			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
 			const dataToDecrypt = cloneDeep(data);
 			delete dataToDecrypt["_id"];
 
 			if (includeFields.length && autoDecrypt) {
 				await Promise.all(
 					includeFields.map(async (key) => {
-						await this.decryptForKey<T>(key, dataToDecrypt, data, clientEncryption);
+						await this.decryptForKey<T>(key, dataToDecrypt, data);
 					})
 				);
 			} else if (excludeFields.length && autoDecrypt) {
 				await Promise.all(
 					Object.keys(dataToDecrypt).map(async (key) => {
 						if (excludeFields.indexOf(key) == -1) {
-							await this.decryptForKey<T>(key, dataToDecrypt, data, clientEncryption);
+							await this.decryptForKey<T>(key, dataToDecrypt, data);
 						}
 					})
 				);
 			} else if (autoDecrypt) {
 				await Promise.all(
 					Object.keys(dataToDecrypt).map(async (key) => {
-						await this.decryptForKey<T>(key, dataToDecrypt, data, clientEncryption);
+						await this.decryptForKey<T>(key, dataToDecrypt, data);
 					})
 				);
 			}
@@ -720,13 +715,14 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * Decrypts Value
 	 * @param value - Value to Decrypt
 	 */
-	async decryptValue<T>(value: Binary) {
+	async decryptValue(value: Binary) {
 		try {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return value;
 			}
-			const clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
-			const decryptedValue = await clientEncryption.decrypt<T>(value);
+			logger.debug("Decrypting value");
+			const decryptedValue = await this.clientEncryption.decrypt(value);
+			logger.debug("Decrypted value");
 			return decryptedValue;
 		} catch (err) {
 			logger.error("Error occurred in decryptValue: %o", err);
@@ -734,7 +730,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async recursiveDecrypt<T>(
+	private async recursiveDecrypt(
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		obj: object,
 		path?: string
@@ -746,7 +742,9 @@ class MongoDb implements DbInterface<MongoDb> {
 						path ? path + `.${key}` : key;
 						await this.recursiveDecrypt(value as object, path);
 					} else {
-						set(obj, path || key, await this.decryptValue<T>(value as Binary));
+						logger.debug("Decrypting value for key: %o", key);
+						set(obj, path || key, await this.decryptValue(value as Binary));
+						logger.debug("Decrypted value for key: %o", key);
 					}
 				})
 			);
@@ -756,12 +754,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async decryptForKey<T>(
-		key: string,
-		dataToDecrypt: object,
-		data: object,
-		clientEncryption: ClientEncryption
-	) {
+	private async decryptForKey<T>(key: string, dataToDecrypt: object, data: object) {
 		try {
 			const valueToDecrypt = get(dataToDecrypt, key.split(".")) as object | undefined;
 			let decryptedValue;
@@ -770,7 +763,7 @@ class MongoDb implements DbInterface<MongoDb> {
 					await this.recursiveDecrypt(valueToDecrypt);
 					decryptedValue = valueToDecrypt;
 				} else {
-					decryptedValue = await clientEncryption.decrypt<T>(valueToDecrypt as Binary);
+					decryptedValue = await this.clientEncryption.decrypt(valueToDecrypt as Binary);
 				}
 				set(
 					data,

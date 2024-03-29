@@ -10,6 +10,7 @@ interface QueueInterface<T> {
 		queueName: string,
 		callback?: (message: any, err?: Error) => Promise<void>
 	): Promise<any>;
+	getCurrentQueueLength(queueName: string): Promise<number>;
 }
 
 export { QueueInterface };
