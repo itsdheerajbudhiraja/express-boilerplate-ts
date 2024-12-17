@@ -1,5 +1,8 @@
-import type { ClientEncryptionCreateDataKeyProviderOptions } from "mongodb";
-import type { CreateIndexesOptions, IndexSpecification } from "mongodb";
+import type {
+	ClientEncryptionCreateDataKeyProviderOptions,
+	CreateIndexesOptions,
+	IndexSpecification
+} from "mongodb";
 
 import { readdir } from "fs/promises";
 import { ClientEncryption } from "mongodb";
@@ -8,6 +11,7 @@ import { join } from "path";
 import { REFRESH_TOKENS_COLLECTION } from "./constants.js";
 import { CLIENT_ENCRYPTION_CONFIG, ENCRYPTION_CONFIG } from "./db/encryptionConfig.js";
 import { db } from "./db/index.js";
+import { INDEXING_CONFIG } from "./db/indexingConfig.js";
 import { BaseEntity } from "./entities/BaseEntity.js";
 import { EntityCollectionUndefinedError } from "./errors/EntityCollectionUndefinedError.js";
 import { dirName } from "./utils/fileDirName.js";
@@ -17,24 +21,19 @@ const ensureDbCollectionsAndIndexes = async function ensureDbCollectionsAndIndex
 	// Ensure all entity class have collection name defined.
 	await ensureEntitiesCollectionNameDefined();
 
-	await ensureCollectionAndIndex(
-		REFRESH_TOKENS_COLLECTION,
-		"value",
-		{ value: -1 },
-		{ unique: true }
-	);
-	await ensureCollectionAndIndex(REFRESH_TOKENS_COLLECTION, "user_id", { user_id: 1 }, {});
-	await ensureCollectionAndIndex(
-		REFRESH_TOKENS_COLLECTION,
-		"value_user_id",
-		{ value: -1, user_id: 1 },
-		{ unique: true }
-	);
-	await ensureCollectionAndIndex(
-		REFRESH_TOKENS_COLLECTION,
-		"expiration_time",
-		{ expiration_time: -1 },
-		{ expireAfterSeconds: 0 }
+	await Promise.all(
+		Object.keys(INDEXING_CONFIG).map(async (collectionName) => {
+			const indexes = INDEXING_CONFIG[collectionName];
+
+			for (const config of indexes) {
+				await ensureCollectionAndIndex(collectionName, config.name, config.spec, config.options);
+			}
+
+			if (collectionName != REFRESH_TOKENS_COLLECTION) {
+				await ensureCollectionAndIndex(collectionName, "created_at", { created_at: -1 });
+				await ensureCollectionAndIndex(collectionName, "updated_at", { updated_at: -1 });
+			}
+		})
 	);
 };
 
@@ -98,7 +97,8 @@ async function ensureEncryptionKeys() {
 }
 
 async function ensureEntitiesCollectionNameDefined() {
-	const entities = await readdir(join(dirName(import.meta), "./entities"));
+	const files = await readdir(join(dirName(import.meta), "./entities"));
+	const entities = files.filter((file) => file.match(".js$"));
 	const entitiesPromises = entities.map(async (entity) => {
 		let entityClass = await import(join(dirName(import.meta), "./entities", entity));
 		entityClass = entityClass[Object.keys(entityClass)[0]];

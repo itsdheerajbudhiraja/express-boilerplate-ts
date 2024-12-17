@@ -4,13 +4,16 @@ import type { tags } from "typia";
 
 declare global {
 	namespace NodeJS {
+		type TruthyString = string & tags.MinLength<1>;
+
 		interface ProcessEnv {
 			[key: string]: string | undefined;
 
 			// Express Server
-			NODE_ENV: string;
-			HOST: string;
+			NODE_ENV: TruthyString;
+			HOST: TruthyString;
 			PORT: number & tags.Minimum<80> & tags.Maximum<30000>;
+			ENABLE_WEBSOCKET_SERVER: boolean;
 			HTTPS: boolean;
 			SSL_CRT_FILE?: string;
 			SSL_KEY_FILE?: string;
@@ -36,6 +39,7 @@ declare global {
 			// Disable auth when handled on API GW
 			USE_BEARER_AUTH: boolean;
 			USE_API_KEY_AUTH: boolean;
+			USE_WEBSOCKET_AUTH: boolean;
 
 			// Swagger
 			SWAGGER_BASE_URL: string;
@@ -51,8 +55,7 @@ declare global {
 				| "AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic"
 				| "AEAD_AES_256_CBC_HMAC_SHA_512-Random"
 				| "Indexed"
-				| "Unindexed"
-				| "RangePreview";
+				| "Unindexed";
 
 			// Persistent Queue
 			PERSISTENT_QUEUE_TYPE: "Redis";
@@ -63,32 +66,73 @@ declare global {
 			REDIS_CLUSTER_MODE: boolean;
 
 			// Cache
-			CACHE_TYPE: "NodeCache";
+			CACHE_TYPE: "NodeCache" | "RedisCache";
 			CACHE_STANDARD_TTL: number;
 			CACHE_EXPIRED_CHECK_PERIOD: number;
+			CACHE_SERVER_URL?: string & tags.Format<"uri">;
+
+			// Websocket Notification
+			NOTIFICATION_QUEUE: string;
 
 			// Auth
 			AUTH_TYPE: "JWT";
 			JWT_ALGORITHM: Algorithm;
-			JWT_EXPIRY_TIME: string;
-			JWT_REFRESH_TOKEN_EXPIRY_TIME: string;
-			JWT_AUDIENCES: string;
-			JWT_ISSUER: string;
+			JWT_EXPIRY_TIME: TruthyString;
+			JWT_REFRESH_TOKEN_EXPIRY_TIME: TruthyString;
+			JWT_AUDIENCES: TruthyString;
+			JWT_ISSUER: TruthyString;
+			JWT_PII_ENCRYPTION_AES_KEY: string;
+			JWT_PII_ENCRYPTION_AES_IV: string;
 			AUTHENTICATION_SCHEME: keyof typeof AuthenticationScheme;
-			KEY_PAIR_DIRECTORY: string;
-			PRIVATE_KEY_FILE: string;
-			PUBLIC_KEY_FILE: string;
+			PRIVATE_PEM_KEY: TruthyString;
+			PUBLIC_PEM_KEY: TruthyString;
 
 			// Banner
-			APPLICATION_TITLE: string;
-			APPLICATION_DESCRIPTION: string;
-			APPLICATION_TITLE_COLOR: string;
-			APPLICATION_DESCRIPTION_COLOR: string;
+			APPLICATION_TITLE: TruthyString;
+			APPLICATION_DESCRIPTION: TruthyString;
+			APPLICATION_TITLE_COLOR: TruthyString;
+			APPLICATION_DESCRIPTION_COLOR: TruthyString;
+
+			// Scripts
+			SCRIPT_SERVER_BASE_URL: string & tags.Pattern<"^(http|https)://">;
+			SCRIPT_SERVER_API_KEY: string;
 
 			// Email validation TLDS
 			EMAIL_VALIDATOR_ADDITIONAL_TLDS: string[];
 			EMAIL_VALIDATOR_ADDITIONAL_SLDS: string[];
 			EMAIL_VALIDATOR_ADDITIONAL_DOMAINS: string[];
+
+			//SMTP
+			SMTP_HOST: TruthyString;
+			SMTP_PORT: number;
+			SMTP_USERNAME: TruthyString;
+			SMTP_PASS: TruthyString;
+			SMTP_SENDER_NAME: TruthyString;
+			SMTP_SENDER_EMAIL: TruthyString;
+
+			// AWS S3 configs
+			AWS_REGION: TruthyString;
+			AWS_ACCESS_ID: TruthyString;
+			AWS_ACCESS_KEY: TruthyString;
+			AWS_S3_BUCKET_NAME: TruthyString;
+			AWS_S3_ENCRYPT_DOCUMENTS: boolean;
+			AWS_S3_ENCRYPTION_KEY: TruthyString;
+			AWS_S3_ENCRYPTED_DOCUMENT_DOWNLOAD_BASE_URL: TruthyString & tags.Format<"uri">;
+			AWS_S3_ENCRYPTED_DOCUMENT_DOWNLOAD_HMAC_SECRET_KEY: TruthyString;
+
+			// Document Image Size Limits
+			DOCUMENT_GENERAL_MAX_SIZE: number & tags.Type<"uint32"> & tags.Maximum<4096>;
+			DOCUMENT_JPEG_MAX_SIZE: number & tags.Type<"uint32"> & tags.Maximum<4096>;
+			DOCUMENT_PNG_MAX_SIZE: number & tags.Type<"uint32"> & tags.Maximum<4096>;
+			DOCUMENT_PDF_MAX_SIZE: number & tags.Type<"uint32"> & tags.Maximum<4096>;
+
+			//* Other Components configurations like Dedicated Login Service etc
+
+			// Login service
+			COOKIES_DOMAIN: string;
+			COOKIES_NAME_SUFFIX: string;
+			LOGIN_JWKS_ENDPOINT: string;
+			LOGIN_SERVICE_BASE_URL: string;
 		}
 	}
 }

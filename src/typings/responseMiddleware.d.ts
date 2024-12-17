@@ -1,4 +1,3 @@
-/* eslint-disable */
 declare namespace Express {
 	export interface Response {
 		OK(result?: object | string): void;

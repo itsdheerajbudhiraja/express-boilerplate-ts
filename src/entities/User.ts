@@ -1,4 +1,4 @@
-import type { UserCreationParams } from "../types/UserCreationParams.js";
+import type { UserCreationParams } from "../types/User.js";
 
 import { v4 } from "uuid";
 

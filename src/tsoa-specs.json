@@ -30,12 +30,20 @@
 				"type": "string",
 				"example": "52907745-7672-470e-a803-a2f8feb52944",
 				"description": "Stringified UUIDv4.\nSee [RFC 4112](https://tools.ietf.org/html/rfc4122)",
-				"pattern": "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}"
+				"pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$"
 			},
 			"User": {
 				"properties": {
 					"_id": {
 						"$ref": "#/components/schemas/UUIDv4"
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updated_at": {
+						"type": "string",
+						"format": "date-time"
 					},
 					"name": {
 						"type": "string"
@@ -90,6 +98,14 @@
 					},
 					"pic": {
 						"type": "string"
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updated_at": {
+						"type": "string",
+						"format": "date-time"
 					}
 				},
 				"required": [
@@ -107,7 +123,7 @@
 			"UserCreationParams": {
 				"$ref": "#/components/schemas/Omit_User._id_"
 			},
-			"ApiSuccessResponse__data-User-Array--total_elements-number__": {
+			"ApiSuccessResponse__content-User-Array--total_elements-number__": {
 				"properties": {
 					"result": {
 						"properties": {
@@ -115,7 +131,7 @@
 								"type": "number",
 								"format": "double"
 							},
-							"data": {
+							"content": {
 								"items": {
 									"$ref": "#/components/schemas/User"
 								},
@@ -124,7 +140,7 @@
 						},
 						"required": [
 							"total_elements",
-							"data"
+							"content"
 						],
 						"type": "object"
 					},
@@ -253,7 +269,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ApiSuccessResponse__data-User-Array--total_elements-number__"
+									"$ref": "#/components/schemas/ApiSuccessResponse__content-User-Array--total_elements-number__"
 								}
 							}
 						}

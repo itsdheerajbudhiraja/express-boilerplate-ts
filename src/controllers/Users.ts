@@ -17,14 +17,16 @@ import {
 	SuccessResponse,
 	Tags,
 	Response,
-	Request
+	Request,
+	Middlewares
 } from "tsoa";
 
 import { BadRequest } from "../errors/ApiError.js";
 import { ApiAuthType } from "../middlewares/authMiddleware.js";
+import { userProfilePicUploadMiddleware } from "../middlewares/userProfilePicUploadMiddleware.js";
 import { successResponse } from "../responses/successResponse.js";
 import { UsersService } from "../services/Users.js";
-import { UserCreationParams } from "../types/UserCreationParams.js";
+import { UserCreationParams, type UploadedDocument } from "../types/User.js";
 import { logger } from "../winston_logger.js";
 
 @Route("/users")
@@ -52,6 +54,7 @@ export class UsersController extends Controller {
 
 	@Post("/image/{userId}")
 	@OperationId("SetUserProfilePic")
+	@Middlewares(userProfilePicUploadMiddleware)
 	/**
 	 * @openapi
 	 * /users/image/{userId}:
@@ -62,7 +65,7 @@ export class UsersController extends Controller {
 	 *                  schema:
 	 *                      type: object
 	 *                      properties:
-	 *                          userProfilePic:
+	 *                          User_Profile_Pic:
 	 *                              type: string
 	 *                              format: base64
 	 *
@@ -71,13 +74,16 @@ export class UsersController extends Controller {
 		@Path("userId") userId: string,
 		@Request() request: express.Request
 	): Promise<ApiSuccessResponse<User>> {
-		await this.uploadFile(request);
-		const file = request.file;
+		const documents = request.documents as UploadedDocument[];
 
-		if (!file) {
+		const userProfilePic = documents.find((doc) => {
+			return doc.label == "User_Profile_Pic";
+		});
+
+		if (!userProfilePic?.content) {
 			throw new BadRequest("File not uploaded or some error occurred during upload");
 		}
-		const imageBase64 = file.buffer.toString("base64");
+		const imageBase64 = userProfilePic.content.toString("base64");
 
 		return successResponse(await new UsersService().updateProfilePic(userId, imageBase64));
 	}
@@ -85,7 +91,7 @@ export class UsersController extends Controller {
 	/** Retrieves all users from database */
 	@Get()
 	@OperationId("GetAllUsers")
-	public async getUser(): Promise<ApiSuccessResponse<{ data: User[]; total_elements: number }>> {
+	public async getUser(): Promise<ApiSuccessResponse<{ content: User[]; total_elements: number }>> {
 		return successResponse(await new UsersService().getAllUsers());
 	}
 

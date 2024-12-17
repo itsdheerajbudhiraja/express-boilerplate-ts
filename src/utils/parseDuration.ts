@@ -1,5 +1,6 @@
 import { logger } from "../winston_logger.js";
 
+/** Returns time in milliseconds */
 function parseDuration(time: string | number) {
 	try {
 		if (typeof time == "number") {
@@ -19,6 +20,8 @@ function parseDuration(time: string | number) {
 				return number * 60 * 60 * 1000;
 			case "d":
 				return number * 24 * 60 * 60 * 1000;
+			case "y":
+				return number * 365 * 24 * 60 * 60 * 1000;
 			default:
 				throw new Error("Invalid time format.");
 		}

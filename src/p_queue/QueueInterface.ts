@@ -8,7 +8,7 @@ interface QueueInterface<T> {
 	publish(queueName: string, data: string): Promise<any>;
 	subscribe(
 		queueName: string,
-		callback?: (message: any, err?: Error) => Promise<void>
+		callback?: (message: any, err?: Error) => Promise<void> | void
 	): Promise<any>;
 	getCurrentQueueLength(queueName: string): Promise<number>;
 }

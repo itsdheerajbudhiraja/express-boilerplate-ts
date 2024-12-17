@@ -98,8 +98,8 @@ describe("User Entity", () => {
 			it("should return array of user of length 1", async () => {
 				await User.getAll()
 					.then((users) => {
-						expect(users.data).toContainEqual(user);
-						expect(users.data.length).toEqual(1);
+						expect(users.content).toContainEqual(user);
+						expect(users.content.length).toEqual(1);
 					})
 					.catch((err) => {
 						expect(err).toBeUndefined();
@@ -111,8 +111,8 @@ describe("User Entity", () => {
 			it("should return array of user of length 1", async () => {
 				await User.getAll()
 					.then((users) => {
-						expect(users.data).toContainEqual(user);
-						expect(users.data.length).toEqual(1);
+						expect(users.content).toContainEqual(user);
+						expect(users.content.length).toEqual(1);
 					})
 					.catch((err) => {
 						expect(err).toBeUndefined();
@@ -131,7 +131,7 @@ describe("User Entity", () => {
 			it("should return blank array", async () => {
 				await User.getAll()
 					.then((users) => {
-						expect(users.data.length).toEqual(0);
+						expect(users.content.length).toEqual(0);
 					})
 					.catch((err) => {
 						expect(err).toBeUndefined();

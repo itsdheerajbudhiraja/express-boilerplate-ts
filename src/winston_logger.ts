@@ -1,7 +1,9 @@
 import "winston-daily-rotate-file";
+import type { AxiosError } from "axios";
 import type { ConsoleTransportOptions } from "winston/lib/winston/transports/index.js";
 import type { DailyRotateFileTransportOptions } from "winston-daily-rotate-file";
 
+import { type AxiosResponse } from "axios";
 import winston from "winston";
 
 const colorizer = winston.format.colorize();
@@ -59,18 +61,20 @@ const options = {
 		level: process.env.LOG_LEVEL_FILE,
 		filename: "app_%DATE%.log",
 		dirname: "logs",
-		datePattern: "YYYY-MM-DDTHH:mm:ss",
+		datePattern: "YYYY-MM-DDTHH",
 		handleExceptions: true,
 		json: false,
-		maxsize: "50m", // 50MB
-		maxFiles: 100,
+		maxSize: "50m", // 50MB
+		maxFiles: 1000,
 		colorize: false,
 		format: winston.format.combine(logsForFile)
 	}
 };
 
-interface CustomLogger extends winston.Logger {
+export interface CustomLogger extends winston.Logger {
 	debugSanitized: (message: string, ...args: string[]) => void;
+	axiosSuccessResponse: (message: string, response: AxiosResponse) => void;
+	axiosErrorResponse: (message: string, error: AxiosError) => void;
 }
 
 const logger = winston.createLogger({
@@ -84,6 +88,30 @@ const logger = winston.createLogger({
 logger.debugSanitized = function debugSanitized(message: string, ...args: string[]) {
 	const sanitizedArgs = args.map((arg) => sanitize(arg));
 	logger.debug(message, ...sanitizedArgs);
+};
+
+logger.axiosSuccessResponse = function axiosSuccessResponse(
+	message: string,
+	response: AxiosResponse
+) {
+	const responseToLog = {
+		status: response.status,
+		data: response.data,
+		url: response.config.url
+	};
+	logger.debug(message, responseToLog);
+};
+
+logger.axiosErrorResponse = function axiosErrorResponse(message: string, error: AxiosError) {
+	const errorToLog = {
+		code: error.code,
+		status: error.response?.status,
+		data: error.response?.data,
+		url: error.response?.config.url,
+		message: error.message
+	};
+
+	logger.error(message, errorToLog);
 };
 
 export { logger };

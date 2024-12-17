@@ -37,8 +37,8 @@ type JwtConstructorOptions = {
 	signInOptions?: SignOptions;
 	verifyOptions?: VerifyOptions;
 	keyDirectoryPath?: string;
-	privateKeyFile?: string;
-	publicKeyFile?: string;
+	privateKey?: string;
+	publicKey?: string;
 	audiences?: string | string[];
 	expiryTime?: string | number;
 	refreshTokenExpiryTime?: string | number;

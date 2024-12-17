@@ -1,4 +1,4 @@
-FROM node:20.12.0
+FROM node:22.12.0
 
 # Add a new user "nodeapp"
 RUN useradd nodeapp
@@ -7,19 +7,19 @@ RUN useradd nodeapp
 WORKDIR /home/nodeapp/
 
 # Copy required artifacts
-COPY package.json ./package.json
-COPY package-lock.json ./package-lock.json
+COPY --chown=nodeapp:nodeapp package.json ./package.json
+COPY --chown=nodeapp:nodeapp package-lock.json ./package-lock.json
 
 # Installing node modules
 RUN npm install
 
 # Copy code
-COPY tsconfig.json ./tsconfig.json
-COPY tsoa.json ./tsoa.json
-COPY swagger.json ./swagger.json
-COPY keys ./keys
-COPY src ./src
-COPY .env ./.env
+COPY --chown=nodeapp:nodeapp tsconfig.json ./tsconfig.json
+COPY --chown=nodeapp:nodeapp tsoa.json ./tsoa.json
+COPY --chown=nodeapp:nodeapp swagger.json ./swagger.json
+COPY --chown=nodeapp:nodeapp keys ./keys
+COPY --chown=nodeapp:nodeapp src ./src
+COPY --chown=nodeapp:nodeapp .env ./.env
 
 # Building code
 RUN npm run build
@@ -27,9 +27,12 @@ RUN npm run build
 # Updating swagger
 RUN npm run swagger
 
+# Updating typedocs
+RUN npm run doc
+
 # Copy files for test
-COPY .env.test ./.env.test
-COPY jest.config.ts ./jest.config.ts
+COPY --chown=nodeapp:nodeapp .env.test ./.env.test
+COPY --chown=nodeapp:nodeapp jest.config.ts ./jest.config.ts
 
 # Running test cases
 RUN npm test
@@ -46,4 +49,4 @@ USER nodeapp
 # Preventing swagger from comments being ovveridden because we deleted src folder
 ENV UPDATE_SWAGGER_ON_START=false
 
-CMD [ "npm", "run", "prod" ]
+CMD [ "node", "--enable-source-maps", "dist/index.js" ]

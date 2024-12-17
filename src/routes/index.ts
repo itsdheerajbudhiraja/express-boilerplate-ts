@@ -5,7 +5,7 @@ import path from "path";
 
 import { logger } from "../winston_logger.js";
 
-import { app } from "./app.js";
+import { app, io } from "./app.js";
 
 const HOST: string = process.env.HOST || "0.0.0.0";
 const PORT: number = process.env.PORT || 3000;
@@ -45,6 +45,10 @@ if (process.env.HTTPS) {
 	server = http.createServer(app).listen(PORT, HOST, () => {
 		logger.info(`API server is listening at http://${HOST}:${PORT}`);
 	});
+}
+
+if (process.env.ENABLE_WEBSOCKET_SERVER) {
+	io.listen(server);
 }
 
 export { server };

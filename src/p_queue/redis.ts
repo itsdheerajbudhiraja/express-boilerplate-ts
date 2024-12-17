@@ -13,7 +13,7 @@ class Redis implements QueueInterface<Redis> {
 	client = <Cluster | RedisClient>{};
 	connection_string = "";
 
-	group_name = "Batch_Processor";
+	group_name = "BGV_Service";
 	consumer_name = "";
 	stopSubscribers = false;
 
@@ -28,7 +28,7 @@ class Redis implements QueueInterface<Redis> {
 		this.consumer_name = v4();
 	}
 
-	public static getInstance(): Redis | undefined {
+	static getInstance(): Redis | undefined {
 		return Redis.instance;
 	}
 
@@ -94,7 +94,7 @@ class Redis implements QueueInterface<Redis> {
 		}
 	}
 
-	async subscribe(queueName: string, callback: (message: string) => Promise<void>) {
+	async subscribe(queueName: string, callback: (message: string) => Promise<void> | void) {
 		const newClient = this.client.duplicate();
 
 		try {

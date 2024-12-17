@@ -1,4 +1,4 @@
-import type { UserCreationParams } from "../types/UserCreationParams.js";
+import type { UserCreationParams } from "../types/User.js";
 
 import { User } from "../entities/User.js";
 
@@ -7,7 +7,7 @@ export class UsersService {
 		return (await User.getById(id)) || <User>{};
 	}
 
-	public async getAllUsers(): Promise<{ data: User[]; total_elements: number }> {
+	public async getAllUsers(): Promise<{ content: User[]; total_elements: number }> {
 		return await User.getAll();
 	}
 

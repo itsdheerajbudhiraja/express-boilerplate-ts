@@ -23,7 +23,7 @@ interface DbInterface<T> {
 		skip: number,
 		limit: number,
 		findOptions: any
-	): Promise<{ data: any[]; total_elements: number }>;
+	): Promise<{ content: any[]; total_elements: number }>;
 	fetchAllAndSort(
 		tableName: string,
 		filterCondition: any,
@@ -31,7 +31,7 @@ interface DbInterface<T> {
 		skip: number,
 		limit: number,
 		findOptions: any
-	): Promise<{ data: any[]; total_elements: number }>;
+	): Promise<{ content: any[]; total_elements: number }>;
 	encrypt(tableName: string, data: any): Promise<any>;
 	encryptValue(tableName: string, data: any): Promise<any>;
 	decrypt(tableName: string, data: any): Promise<any>;

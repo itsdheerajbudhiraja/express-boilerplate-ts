@@ -34,7 +34,7 @@ describe("Authentication Middleware", () => {
 			const req = <Request>{ headers: {} };
 			it(`should return ${StatusCodes.UNAUTHORIZED}`, () => {
 				authorize(req, res, next);
-				expect(res.UNAUTHORIZED).toBeCalled();
+				expect(res.UNAUTHORIZED).toHaveBeenCalled();
 			});
 		});
 
@@ -46,7 +46,7 @@ describe("Authentication Middleware", () => {
 			};
 			it(`should return ${StatusCodes.FORBIDDEN}`, () => {
 				authorize(req, res, next);
-				expect(res.FORBIDDEN).toBeCalled();
+				expect(res.FORBIDDEN).toHaveBeenCalled();
 			});
 		});
 
@@ -59,8 +59,8 @@ describe("Authentication Middleware", () => {
 					}
 				};
 				authorize(req, res, next);
-				expect(res.UNAUTHORIZED).toBeCalledTimes(0);
-				expect(res.FORBIDDEN).toBeCalledTimes(0);
+				expect(res.UNAUTHORIZED).toHaveBeenCalledTimes(0);
+				expect(res.FORBIDDEN).toHaveBeenCalledTimes(0);
 			});
 		});
 	});
@@ -70,8 +70,8 @@ describe("Authentication Middleware", () => {
 			const req = <Request>{ headers: {} };
 			it(`should return ${StatusCodes.UNAUTHORIZED}`, () => {
 				authenticateDocsApiKey(req, res, next);
-				expect(res.sendStatus).toBeCalled();
-				expect(res.sendStatus).toBeCalledWith(StatusCodes.UNAUTHORIZED);
+				expect(res.sendStatus).toHaveBeenCalled();
+				expect(res.sendStatus).toHaveBeenCalledWith(StatusCodes.UNAUTHORIZED);
 			});
 		});
 
@@ -85,7 +85,7 @@ describe("Authentication Middleware", () => {
 			};
 			it(`should return ${StatusCodes.FORBIDDEN}`, () => {
 				authenticateDocsApiKey(req, res, next);
-				expect(res.sendStatus).toBeCalledWith(StatusCodes.FORBIDDEN);
+				expect(res.sendStatus).toHaveBeenCalledWith(StatusCodes.FORBIDDEN);
 			});
 		});
 
@@ -101,8 +101,8 @@ describe("Authentication Middleware", () => {
 			};
 			it(`should not return ${StatusCodes.UNAUTHORIZED} or ${StatusCodes.FORBIDDEN}`, () => {
 				authenticateDocsApiKey(req, res, next);
-				expect(res.sendStatus).toBeCalledTimes(0);
-				expect(res.FORBIDDEN).toBeCalledTimes(0);
+				expect(res.sendStatus).toHaveBeenCalledTimes(0);
+				expect(res.FORBIDDEN).toHaveBeenCalledTimes(0);
 			});
 		});
 	});
@@ -112,7 +112,7 @@ describe("Authentication Middleware", () => {
 			const req = <Request>{ headers: {} };
 			it(`should return ${StatusCodes.UNAUTHORIZED}`, () => {
 				authenticateAdminApiKey(req, res, next);
-				expect(res.UNAUTHORIZED).toBeCalled();
+				expect(res.UNAUTHORIZED).toHaveBeenCalled();
 			});
 		});
 
@@ -124,7 +124,7 @@ describe("Authentication Middleware", () => {
 			};
 			it(`should return ${StatusCodes.FORBIDDEN}`, () => {
 				authenticateAdminApiKey(req, res, next);
-				expect(res.FORBIDDEN).toBeCalled();
+				expect(res.FORBIDDEN).toHaveBeenCalled();
 			});
 		});
 
@@ -136,8 +136,8 @@ describe("Authentication Middleware", () => {
 			};
 			it(`should not return ${StatusCodes.UNAUTHORIZED} or ${StatusCodes.FORBIDDEN}`, () => {
 				authenticateAdminApiKey(req, res, next);
-				expect(res.UNAUTHORIZED).toBeCalledTimes(0);
-				expect(res.FORBIDDEN).toBeCalledTimes(0);
+				expect(res.UNAUTHORIZED).toHaveBeenCalledTimes(0);
+				expect(res.FORBIDDEN).toHaveBeenCalledTimes(0);
 			});
 		});
 	});

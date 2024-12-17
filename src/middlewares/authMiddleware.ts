@@ -1,11 +1,18 @@
 import type { NextFunction, Request, Response } from "express";
+import type { IncomingHttpHeaders } from "http";
+import type { JwtPayload } from "jsonwebtoken";
 
+import { parse } from "cookie";
 import { StatusCodes } from "http-status-codes";
+import Jwt from "jsonwebtoken";
+import jwksClient from "jwks-rsa";
 
 import auth from "../auth/index.js";
 import { Failure } from "../constants.js";
 import { Forbidden, Unauthorized } from "../errors/ApiError.js";
 import { logger } from "../winston_logger.js";
+
+let loginTokenSigningKey: string;
 
 export function authorize(req: Request, res: Response, next: NextFunction) {
 	try {
@@ -90,6 +97,96 @@ export function authenticateAdminApiKey(req: Request, res: Response, next: NextF
 	}
 }
 
+/**
+ * End User websocket handshake authentication middleware
+ */
+export async function authenticateWebsocketConnectionForEndUser(
+	id: string,
+	headers: IncomingHttpHeaders
+) {
+	if (!process.env.USE_WEBSOCKET_AUTH) {
+		return Promise.resolve();
+	}
+	let payload;
+	const token = getAuthorizationTokenFromHeader("end_user", headers);
+
+	try {
+		payload = Jwt.verify(token, await getSigningKey()) as JwtPayload;
+	} catch (err) {
+		throw new Forbidden((err as Error).message);
+	}
+
+	if (!id || payload["role"] != "END_USER" || payload["user_id"] != id) {
+		throw new Forbidden("Invalid authentication headers");
+	}
+	return Promise.resolve();
+}
+
+/**
+ * Admin User websocket handshake authentication middleware
+ */
+export async function authenticateWebsocketConnectionForAdminUser(
+	id: string,
+	headers: IncomingHttpHeaders
+) {
+	if (!process.env.USE_WEBSOCKET_AUTH) {
+		return Promise.resolve();
+	}
+
+	let payload;
+	const token = getAuthorizationTokenFromHeader("admin_user", headers);
+	try {
+		payload = Jwt.verify(token, await getSigningKey()) as JwtPayload;
+	} catch (err) {
+		throw new Forbidden((err as Error).message);
+	}
+
+	if (!id || payload["role"] != "ADMIN_USER") {
+		throw new Forbidden("Invalid authentication headers");
+	}
+	return Promise.resolve();
+}
+
+/**
+ *
+ * @param headers Request headers containing Authorization or Cookie
+ * @returns login token
+ */
+export function getAuthorizationTokenFromHeader(type: UserType, headers: IncomingHttpHeaders) {
+	if (!headers.authorization && !headers.cookie) {
+		throw new Unauthorized("Missing authorization headers in request");
+	}
+	// getting authorization token from cookie header
+	let token: string = "";
+
+	if (headers.authorization) {
+		token = headers.authorization.split("Bearer ")[1];
+	} else if (headers.cookie) {
+		const cookies = parse(headers.cookie);
+
+		//extracting login_token from authorization token
+		const keyForChunkCount = getCookieName("login_token_chunks_count", type);
+
+		const chunkCounts = Number(cookies[keyForChunkCount]);
+		if (isNaN(chunkCounts)) {
+			throw new Unauthorized("Missing or malformed cookie");
+		}
+
+		for (let i = 0; i < chunkCounts; i++) {
+			const loginTokenKey = getCookieName(`login_token_${i + 1}`, type);
+
+			if (!cookies[loginTokenKey]) {
+				throw new Unauthorized("Missing or malformed cookie");
+			}
+			token = token + cookies[loginTokenKey];
+		}
+	}
+	if (!token) {
+		throw new Unauthorized("Missing or malformed token");
+	}
+	return token;
+}
+
 export async function expressAuthentication(
 	req: Request,
 	securityName: string,
@@ -110,6 +207,7 @@ export async function expressAuthentication(
 			}
 			return Promise.resolve();
 		}
+
 		if (securityName == ApiAuthType.BEARER) {
 			if (!process.env.USE_BEARER_AUTH) {
 				return Promise.resolve();
@@ -127,12 +225,51 @@ export async function expressAuthentication(
 			}
 			const authPayload = auth.validateToken(token);
 			logger.debug("Auth payload: %o", authPayload);
+
 			//TODO: custom payload validation here
 			return Promise.resolve();
 		}
+
 		return Promise.reject(new Unauthorized("Unsupported_Authentication"));
 	} catch (error) {
+		logger.error("Error occurred in expressAuthentication %o", error);
 		return Promise.reject(new Forbidden("Authentication Failed"));
+	}
+}
+
+export type UserType = "admin_user" | "end_user";
+
+export function getCookieName(name: string, userType: UserType) {
+	name = `${name}_${userType}`;
+	return process.env.COOKIES_NAME_SUFFIX ? `${name}${process.env.COOKIES_NAME_SUFFIX}` : name;
+}
+
+/**
+ *
+ * @returns Public signing key from Jwks
+ */
+async function getSigningKey() {
+	try {
+		if (loginTokenSigningKey) {
+			//returning cached signingKey
+			return loginTokenSigningKey;
+		}
+
+		const client = jwksClient({
+			jwksUri: `${process.env.LOGIN_SERVICE_BASE_URL}${process.env.LOGIN_JWKS_ENDPOINT}`,
+			timeout: 30000
+		});
+
+		const key = await client.getSigningKey();
+		const signingKey = key.getPublicKey();
+
+		//caching signing key
+		loginTokenSigningKey = signingKey;
+
+		return loginTokenSigningKey;
+	} catch (err) {
+		logger.error("Error occurred in getSigningKey: %o", err);
+		throw err;
 	}
 }
 

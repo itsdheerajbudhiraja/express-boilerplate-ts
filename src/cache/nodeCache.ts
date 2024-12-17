@@ -1,25 +1,20 @@
-import type { CacheInterface } from "./CacheInterface.js";
-
 import * as Node_Cache from "node-cache";
 
-class NodeCache implements CacheInterface<NodeCache> {
-	private static instances: {
-		[key: string]: NodeCache | undefined;
-	} = {};
+import { AbstractAppCache } from "./AbstractAppCache.js";
 
-	cache: Node_Cache;
-	stdTTL: number;
+class NodeCache extends AbstractAppCache {
+	private cache: Node_Cache;
+	private stdTTL: number;
 
-	getInstance(cacheName: string, ttl?: number, checkPeriod?: number): NodeCache {
-		return NodeCache.instances[cacheName] || new NodeCache(cacheName, ttl, checkPeriod);
-	}
+	cacheName: string;
 
 	constructor(
 		cacheName: string,
 		ttl = Number(process.env.CACHE_STANDARD_TTL),
 		checkPeriod = Number(process.env.CACHE_EXPIRED_CHECK_PERIOD)
 	) {
-		NodeCache.instances[cacheName] = this;
+		super();
+		this.cacheName = cacheName;
 		this.cache = new Node_Cache.default({
 			stdTTL: ttl,
 			checkperiod: checkPeriod,
@@ -28,12 +23,13 @@ class NodeCache implements CacheInterface<NodeCache> {
 		this.stdTTL = ttl;
 	}
 
-	set(key: string, value: string | number | object, ttl = this.stdTTL): boolean {
-		return this.cache.set(key, value, ttl);
+	set<T>(key: string, value: T, ttl = this.stdTTL): Promise<boolean> {
+		return Promise.resolve(this.cache.set<T>(`${this.cacheName}-${key}`, value, ttl));
 	}
 
-	get(key: string): string | number | object | undefined {
-		return this.cache.get(key);
+	get<T>(key: string): Promise<T | undefined> {
+		const data = this.cache.get<T>(`${this.cacheName}-${key}`);
+		return Promise.resolve(data);
 	}
 }
 

@@ -1,11 +1,11 @@
 import "./dotenv.js";
-// This line prevents dotenv.js import to get sorted when running organize import in vscode
+import "./db/index.js";
+
 import type http from "http";
 
 import esMain from "es-main";
 import sleep from "sleep-promise";
 
-import { Cache } from "./cache/index.js";
 import createSwaggerJson from "./createSwaggerJson.js";
 import { db } from "./db/index.js";
 import {
@@ -13,6 +13,7 @@ import {
 	ensureEncryptionKeys
 } from "./ensureDbCollectionsAndIndexes.js";
 import { pQueue } from "./p_queue/index.js";
+import { io as webSocket } from "./routes/app.js";
 import { logger } from "./winston_logger.js";
 import { terminatePool } from "./workers/index.js";
 
@@ -30,25 +31,27 @@ async function startup() {
 	await db.connect();
 	logger.info("Connected to Database\n");
 
+	logger.info("Connecting to persistent queue");
+	await pQueue.connect();
+	logger.info("Connected to persistent queue");
+
 	logger.info("Ensuring indexes on database\n");
 	await ensureDbCollectionsAndIndexes();
 
 	logger.info("Ensuring Encryption keys\n");
 	await ensureEncryptionKeys();
 
-	logger.info("Connecting to persistent queue cluster");
-	await pQueue.connect();
-	logger.info("Connected to persistent queue cluster");
-
-	logger.info("Creating Cache instances");
-	new Cache("ApplicationCache");
-
 	logger.info("Starting API server\n");
 	const server = (await import("./routes/index.js")).server as http.Server;
 
 	// graceful shutdown handling
-	process.on("SIGTERM", () => {
+	process.on("SIGTERM", async () => {
+		logger.info("Closing all socket connections");
+		await webSocket.close();
+
 		server.close(async () => {
+			logger.info("Server shutdown completed");
+
 			logger.info("Server shutdown completed");
 			await sleep(5000);
 
@@ -62,12 +65,14 @@ async function startup() {
 			await db.disconnect();
 			logger.info("Terminated database connection");
 
-			logger.info("Terminating redis connection");
-			pQueue.stopSubscribers = true;
+			await sleep(3000);
+
+			logger.info("Terminating persistent queue connection");
 			await pQueue.disconnect();
-			logger.info("Terminated redis connection");
+			logger.info("Terminated persistent queue connection");
 
 			await sleep(3000);
+
 			logger.info("Exiting ....");
 			process.exit(0);
 		});

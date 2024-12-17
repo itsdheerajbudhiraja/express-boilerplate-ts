@@ -1,5 +1,6 @@
 import type DbInterface from "./DbInterface.js";
 import type {
+	AggregateOptions,
 	Binary,
 	BulkWriteOptions,
 	CountDocumentsOptions,
@@ -17,6 +18,7 @@ import type {
 	Sort,
 	UpdateFilter,
 	UpdateOptions,
+	WithId,
 	WithoutId
 } from "mongodb";
 
@@ -24,6 +26,7 @@ import lodash from "lodash";
 import { MongoClient, ClientEncryption } from "mongodb";
 
 import { isObjectOrArray } from "../utils/checkType.js";
+import { getObjectKeysMatchingWildcard } from "../utils/getObjectKeysMatchingWildcard.js";
 import { isStringEmail } from "../utils/isStringEmail.js";
 import { logger } from "../winston_logger.js";
 
@@ -53,7 +56,7 @@ class MongoDb implements DbInterface<MongoDb> {
 		this.clientEncryption = new ClientEncryption(this.mongoClient, CLIENT_ENCRYPTION_CONFIG);
 	}
 
-	public static getInstance() {
+	static getInstance() {
 		return MongoDb.instance;
 	}
 
@@ -97,7 +100,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return collection;
 		} catch (err) {
 			logger.error("Error occurred in getCollection: %o", err);
-			throw new Error("Establishing connection to mongodb failed");
+			throw err;
 		}
 	}
 
@@ -120,9 +123,7 @@ class MongoDb implements DbInterface<MongoDb> {
 
 			let r: InsertOneResult<T>;
 			if (collectionEncryptionConfig) {
-				logger.debug("Cloning data for encryption");
 				let dataToInsert = cloneDeep(data);
-				logger.debug("Cloned data for encryption");
 
 				dataToInsert = await this.encrypt(collectionName, dataToInsert);
 				r = await collection.insertOne(dataToInsert, options);
@@ -139,7 +140,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in insertOne: %o", err);
-			throw new Error("Insert record failed");
+			throw err;
 		}
 	}
 
@@ -162,9 +163,7 @@ class MongoDb implements DbInterface<MongoDb> {
 
 			let r: InsertManyResult<T>;
 			if (collectionEncryptionConfig) {
-				logger.debug("Cloning data for encryption");
 				let dataToInsert = cloneDeep(data);
-				logger.debug("Cloned data for encryption");
 
 				logger.debug("Starting encryption for %o records", data.length);
 				dataToInsert = await Promise.all(
@@ -184,7 +183,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in insertMany: %o", err);
-			throw new Error("Insert many records failed");
+			throw err;
 		}
 	}
 
@@ -209,7 +208,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in updateOne: %o", err);
-			throw new Error("Update record failed");
+			throw err;
 		}
 	}
 
@@ -234,7 +233,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in updateMany: %o", err);
-			throw new Error("Update many records failed");
+			throw err;
 		}
 	}
 
@@ -257,7 +256,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in deleteOne: %o", err);
-			throw new Error("Delete record failed");
+			throw err;
 		}
 	}
 
@@ -280,7 +279,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in deleteMany: %o", err);
-			throw new Error("Delete many records failed");
+			throw err;
 		}
 	}
 
@@ -303,10 +302,12 @@ class MongoDb implements DbInterface<MongoDb> {
 
 			logger.debug("Found %o document in the collection %o", r ? 1 : 0, collectionName);
 
+			r && this.recursiveDecode(r);
+
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in findOne: %o", err);
-			throw new Error("Finding one record failed");
+			throw err;
 		}
 	}
 
@@ -331,11 +332,18 @@ class MongoDb implements DbInterface<MongoDb> {
 				...options
 			});
 
-			logger.debug("Find and Updated 1 document into the collection : %o", JSON.stringify(r));
+			logger.debug(
+				"Find and Updated 1 document into the collection %o for Id %o",
+				collectionName,
+				r?._id
+			);
+
+			r && this.recursiveDecode(r);
+
 			return r as T;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndUpdate: %o", err);
-			throw new Error("Find and Update record failed");
+			throw err;
 		}
 	}
 
@@ -355,10 +363,12 @@ class MongoDb implements DbInterface<MongoDb> {
 			const r = await collection.findOneAndDelete(filterCondition, { ...options });
 
 			logger.debug("Find and deleted document into the collection : %o", JSON.stringify(r));
+
+			r && this.recursiveDecode(r);
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndDelete: %o", err);
-			throw new Error("Find and delete record failed");
+			throw err;
 		}
 	}
 
@@ -384,10 +394,13 @@ class MongoDb implements DbInterface<MongoDb> {
 			});
 
 			logger.debug("Found and replaced document into the collection : %o", JSON.stringify(r));
-			return r;
+
+			r && this.recursiveDecode(r);
+
+			return r as T;
 		} catch (err) {
 			logger.error("Error occurred in findOneAndReplace: %o", err);
-			throw new Error("Insert record failed");
+			throw err;
 		}
 	}
 
@@ -408,7 +421,7 @@ class MongoDb implements DbInterface<MongoDb> {
 			return r;
 		} catch (err) {
 			logger.error("Error occurred in find: %o", err);
-			throw new Error("Fetching all records failed");
+			throw err;
 		}
 	}
 
@@ -458,10 +471,13 @@ class MongoDb implements DbInterface<MongoDb> {
 				.toArray();
 			const count = await collection.countDocuments(filterCondition);
 			logger.debug("Found %o documents in the collection %o", r.length, collectionName);
-			return { data: r, total_elements: count };
+
+			this.recursiveDecode(r);
+
+			return { content: r, total_elements: count };
 		} catch (err) {
 			logger.error("Error occurred in fetchAll: %o", err);
-			throw new Error("Fetching all records failed");
+			throw err;
 		}
 	}
 
@@ -493,11 +509,26 @@ class MongoDb implements DbInterface<MongoDb> {
 			const count = await collection.countDocuments(filterCondition);
 
 			logger.debug("Found %o documents in the collection %o", r.length, collectionName);
-			return { data: r, total_elements: count };
+
+			this.recursiveDecode(r);
+
+			return { content: r, total_elements: count };
 		} catch (err) {
 			logger.error("Error occurred in fetchAllAndSort: %o", err);
-			throw new Error("Fetching all records failed");
+			throw err;
 		}
+	}
+
+	/**
+	 *
+	 */
+	async aggregate<T>(collectionName: string, pipeline: Document[], options?: AggregateOptions) {
+		const collection = this.getCollection(collectionName);
+		const r = await collection.aggregate(pipeline, options).toArray();
+
+		this.recursiveDecode(r);
+
+		return r as T[];
 	}
 
 	/**
@@ -507,6 +538,18 @@ class MongoDb implements DbInterface<MongoDb> {
 	 */
 	async encrypt<T>(collectionName: string, data: OptionalUnlessRequiredId<T>) {
 		try {
+			if (!process.env.DB_ENCRYPT_DATA) {
+				return data;
+			}
+
+			const collectionEncryptionConfig =
+				collectionName in ENCRYPTION_CONFIG &&
+				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
+
+			if (!collectionEncryptionConfig) {
+				return data;
+			}
+
 			const includeFields =
 				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG].includeFields;
 			const excludeFields =
@@ -564,33 +607,48 @@ class MongoDb implements DbInterface<MongoDb> {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return value;
 			}
-			logger.debug("Encrypting value");
-			const encryptedValue = await this.clientEncryption.encrypt(value, {
+
+			const collectionEncryptionConfig =
+				collectionName in ENCRYPTION_CONFIG &&
+				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
+
+			if (!collectionEncryptionConfig) {
+				return value;
+			}
+
+			const encryptedValue = await this.clientEncryption.encrypt(this.encodeValue(value), {
 				keyAltName: collectionName,
 				algorithm: CLIENT_ENCRYPTION_ALGORITHM
 			});
-			logger.debug("Encrypted value");
+
 			return encryptedValue;
 		} catch (err) {
-			logger.error("Error occurred in encryptValue: %o", err);
+			logger.error("Error occurred in encrypting value: %o in encryptValue: %o", value, err);
 			throw err;
 		}
 	}
 
 	private async recursiveEncrypt(collectionName: string, obj: object, path?: string) {
 		try {
+			const objToEncrypt = path ? get(obj, path.split(".")) : obj;
 			await Promise.all(
-				Object.entries(obj).map(async ([key, value]) => {
-					if (isObjectOrArray(value as object)) {
-						path ? path + `.${key}` : key;
-						await this.recursiveEncrypt(collectionName, value as object, path);
-					} else {
-						set(obj, path || key, await this.encryptValue(collectionName, value as string));
+				Object.entries(objToEncrypt).map(async ([key, value]) => {
+					if (value != null) {
+						const pathToEncrypt = path ? path + `.${key}` : key;
+						if (isObjectOrArray(value as object)) {
+							await this.recursiveEncrypt(collectionName, obj, pathToEncrypt);
+						} else {
+							set(
+								obj,
+								pathToEncrypt || key,
+								await this.encryptValue(collectionName, value as string)
+							);
+						}
 					}
 				})
 			);
 		} catch (err) {
-			logger.error("Error occurred in recursiveEncrypt: %o", err);
+			logger.error("Error occurred in encrypting object: %o in recursiveEncrypt: %o", obj, err);
 			throw err;
 		}
 	}
@@ -607,17 +665,12 @@ class MongoDb implements DbInterface<MongoDb> {
 			}
 			const valueToEncrypt = get(dataToEncrypt, key.split(".")) as object | undefined;
 			let encryptedValue;
-			if (valueToEncrypt) {
+			if (valueToEncrypt != null) {
 				if (isObjectOrArray(valueToEncrypt)) {
 					await this.recursiveEncrypt(collectionName, valueToEncrypt);
 					encryptedValue = valueToEncrypt;
 				} else {
-					logger.debug("Encrypting value for key: %o", key);
-					encryptedValue = await this.clientEncryption.encrypt(valueToEncrypt, {
-						keyAltName: collectionName,
-						algorithm: CLIENT_ENCRYPTION_ALGORITHM
-					});
-					logger.debug("Encrypted value for key: %o", key);
+					encryptedValue = await this.encryptValue(collectionName, valueToEncrypt);
 				}
 				set(
 					dataToReturn,
@@ -638,6 +691,15 @@ class MongoDb implements DbInterface<MongoDb> {
 		dataToEncrypt: OptionalUnlessRequiredId<T>,
 		dataToReturn: OptionalUnlessRequiredId<T>
 	) {
+		if (key.includes("*")) {
+			const keys = getObjectKeysMatchingWildcard(data, key);
+			return await Promise.all(
+				keys.map(async (newKey) => {
+					await this.encryptAndMaskValue(newKey, collectionName, data, dataToEncrypt, dataToReturn);
+				})
+			);
+		}
+
 		if (!has(dataToReturn, ["original_attributes", key])) {
 			await this.encryptForKey<T>(collectionName, key, dataToEncrypt, dataToReturn);
 		}
@@ -668,11 +730,20 @@ class MongoDb implements DbInterface<MongoDb> {
 	 * @param collectionName - Name of Collection
 	 * @param data - Data to Decrypt
 	 */
-	async decrypt<T>(collectionName: string, data: OptionalUnlessRequiredId<T>) {
+	async decrypt<T>(collectionName: string, data: OptionalUnlessRequiredId<T> | WithId<T>) {
 		try {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return data;
 			}
+
+			const collectionEncryptionConfig =
+				collectionName in ENCRYPTION_CONFIG &&
+				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG];
+
+			if (!collectionEncryptionConfig) {
+				return data;
+			}
+
 			const includeFields =
 				ENCRYPTION_CONFIG[collectionName as keyof typeof ENCRYPTION_CONFIG].includeFields;
 			const excludeFields =
@@ -720,31 +791,33 @@ class MongoDb implements DbInterface<MongoDb> {
 			if (!process.env.DB_ENCRYPT_DATA) {
 				return value;
 			}
-			logger.debug("Decrypting value");
+
+			if ((value as unknown as object).constructor.name != "Binary") {
+				return value;
+			}
+
 			const decryptedValue = await this.clientEncryption.decrypt(value);
-			logger.debug("Decrypted value");
-			return decryptedValue;
+			const decodedValue = this.decodeValue(decryptedValue);
+
+			return decodedValue;
 		} catch (err) {
 			logger.error("Error occurred in decryptValue: %o", err);
 			throw err;
 		}
 	}
 
-	private async recursiveDecrypt(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		obj: object,
-		path?: string
-	) {
+	private async recursiveDecrypt(obj: object, path?: string) {
 		try {
+			const objToDecrypt = path ? get(obj, path.split(".")) : obj;
 			await Promise.all(
-				Object.entries(obj).map(async ([key, value]) => {
-					if (isObjectOrArray(value as object)) {
-						path ? path + `.${key}` : key;
-						await this.recursiveDecrypt(value as object, path);
-					} else {
-						logger.debug("Decrypting value for key: %o", key);
-						set(obj, path || key, await this.decryptValue(value as Binary));
-						logger.debug("Decrypted value for key: %o", key);
+				Object.entries(objToDecrypt).map(async ([key, value]) => {
+					if (value != null) {
+						const pathToDecrypt = path ? path + `.${key}` : key;
+						if (isObjectOrArray(value as object)) {
+							await this.recursiveDecrypt(obj, pathToDecrypt);
+						} else {
+							set(obj, pathToDecrypt || key, await this.decryptValue(value as Binary));
+						}
 					}
 				})
 			);
@@ -756,14 +829,22 @@ class MongoDb implements DbInterface<MongoDb> {
 
 	private async decryptForKey<T>(key: string, dataToDecrypt: object, data: object) {
 		try {
+			if (key.includes("*")) {
+				const keys = getObjectKeysMatchingWildcard(data, key);
+				return await Promise.all(
+					keys.map(async (newKey) => {
+						await this.decryptForKey(newKey, dataToDecrypt, data);
+					})
+				);
+			}
 			const valueToDecrypt = get(dataToDecrypt, key.split(".")) as object | undefined;
 			let decryptedValue;
-			if (valueToDecrypt) {
+			if (valueToDecrypt != null) {
 				if (isObjectOrArray(valueToDecrypt)) {
 					await this.recursiveDecrypt(valueToDecrypt);
 					decryptedValue = valueToDecrypt;
 				} else {
-					decryptedValue = await this.clientEncryption.decrypt(valueToDecrypt as Binary);
+					decryptedValue = await this.decryptValue(valueToDecrypt as Binary);
 				}
 				set(
 					data,
@@ -773,6 +854,55 @@ class MongoDb implements DbInterface<MongoDb> {
 			}
 		} catch (err) {
 			logger.error("Error occurred in decryptForKey: %o", err);
+			throw err;
+		}
+	}
+
+	private encodeValue(value: string | number | object) {
+		switch (typeof value) {
+			case "number":
+				return `n:${value}`;
+
+			case "boolean":
+				return `b:${value}`;
+
+			default:
+				return value;
+		}
+	}
+
+	private decodeValue(encodedData: string) {
+		if (typeof encodedData != "string" || encodedData[1] != ":") {
+			return encodedData;
+		}
+		const type = encodedData.substring(0, 2);
+		const value = encodedData.substring(2);
+		switch (type) {
+			case "n:":
+				return Number(value);
+			case "b:":
+				return value === "true";
+			default:
+				return value;
+		}
+	}
+
+	private recursiveDecode(obj: object, path?: string) {
+		try {
+			const objToDecrypt = path ? get(obj, path.split(".")) : obj;
+
+			Object.entries(objToDecrypt).map(([key, value]) => {
+				if (value != null) {
+					const pathToDecrypt = path ? path + `.${key}` : key;
+					if (isObjectOrArray(value as object)) {
+						this.recursiveDecode(obj, pathToDecrypt);
+					} else {
+						set(obj, pathToDecrypt || key, this.decodeValue(value as string));
+					}
+				}
+			});
+		} catch (err) {
+			logger.error("Error occurred in recursiveDecode: %o", err);
 			throw err;
 		}
 	}

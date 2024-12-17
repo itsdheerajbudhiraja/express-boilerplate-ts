@@ -2,25 +2,22 @@ import type AuthInterface from "./AuthInterface.js";
 import type { AccessToken, JwtConstructorOptions, RefreshToken, Token } from "./types.js";
 import type { SignOptions, VerifyOptions, Algorithm } from "jsonwebtoken";
 
-import crypto, { createPublicKey } from "crypto";
-import { existsSync, readFileSync } from "fs";
+import crypto, { createPublicKey, createHash, type JsonWebKey } from "crypto";
 import jwt from "jsonwebtoken";
-import path from "path";
 
 import { REFRESH_TOKENS_COLLECTION } from "../constants.js";
 import { db } from "../db/index.js";
-import { dirName } from "../utils/fileDirName.js";
 import { parseDuration } from "../utils/parseDuration.js";
 import { logger } from "../winston_logger.js";
 
 import { AuthenticationScheme } from "./types.js";
 
 class JWT implements AuthInterface {
-	private keyDirectoryPath: string;
-	private privateKeyFile: string;
-	private publicKeyFile: string;
 	private privateKey: string;
 	private publicKey: string;
+	private privateJwks: JsonWebKey;
+	private publicJwks: JsonWebKey;
+	private kid: string | undefined;
 	private authenticationScheme: AuthenticationScheme;
 	private algorithm: Algorithm;
 	private expiryTime: string | number;
@@ -36,54 +33,22 @@ class JWT implements AuthInterface {
 	 */
 	constructor(options?: JwtConstructorOptions) {
 		try {
-			this.keyDirectoryPath =
-				options?.keyDirectoryPath ||
-				(process.env.KEY_PAIR_DIRECTORY
-					? "../../" + process.env.KEY_PAIR_DIRECTORY
-					: "../../keys/");
-			this.privateKeyFile =
-				options?.privateKeyFile || process.env.PRIVATE_KEY_FILE || "privateKey.pem";
-			this.publicKeyFile = options?.publicKeyFile || process.env.PUBLIC_KEY_FILE || "publicKey.pem";
-			const privateKeyPath = path.join(
-				dirName(import.meta),
-				this.keyDirectoryPath,
-				this.privateKeyFile
-			);
-			if (existsSync(privateKeyPath)) {
-				this.privateKey = readFileSync(privateKeyPath).toString("utf-8");
-			} else {
-				throw new Error(
-					"Private key doesn't exists at specified path: " +
-						privateKeyPath +
-						" Specify correct path in .env using 'KEY_PAIR_DIRECTORY' and 'PRIVATE_KEY_FILE' parameters or else place private key at: " +
-						privateKeyPath
-				);
-			}
-			const publicKeyPath = path.join(
-				dirName(import.meta),
-				this.keyDirectoryPath,
-				this.publicKeyFile
-			);
-			if (existsSync(publicKeyPath)) {
-				this.publicKey = readFileSync(publicKeyPath).toString("utf-8");
-			} else {
-				throw new Error(
-					"Public key doesn't exists at specified path: " +
-						publicKeyPath +
-						" Specify correct path in .env using 'KEY_PAIR_DIRECTORY' and 'PUBLIC_KEY_FILE' parameters or else place public key at: " +
-						publicKeyPath
-				);
-			}
+			this.privateKey = options?.privateKey || process.env.PRIVATE_PEM_KEY;
+			this.publicKey = options?.publicKey || process.env.PUBLIC_PEM_KEY;
+
+			this.privateJwks = createPublicKey(this.privateKey).export({ format: "jwk" });
+			this.publicJwks = createPublicKey(this.publicKey).export({ format: "jwk" });
+			this.kid = this.calculateKid(this.publicJwks);
+			this.publicJwks.kid = this.kid;
 
 			this.authenticationScheme = AuthenticationScheme[process.env.AUTHENTICATION_SCHEME];
-
 			this.algorithm = process.env.JWT_ALGORITHM;
 
-			this.expiryTime = options?.expiryTime || process.env.JWT_EXPIRY_TIME || "1h";
+			this.expiryTime = options?.expiryTime || process.env.JWT_EXPIRY_TIME;
 			this.refreshTokenExpiryTime =
-				options?.refreshTokenExpiryTime || process.env.JWT_REFRESH_TOKEN_EXPIRY_TIME || "7d";
-			this.audiences = options?.audiences || process.env.JWT_AUDIENCES || "VC_AUTHN_OIDC";
-			this.issuer = options?.issuer || process.env.JWT_ISSUER || "VC_AUTHN_OIDC_ISSUER";
+				options?.refreshTokenExpiryTime || process.env.JWT_REFRESH_TOKEN_EXPIRY_TIME;
+			this.audiences = options?.audiences || process.env.JWT_AUDIENCES;
+			this.issuer = options?.issuer || process.env.JWT_ISSUER;
 
 			this.signOptions = {
 				expiresIn: this.expiryTime,
@@ -107,7 +72,10 @@ class JWT implements AuthInterface {
 	 */
 	async createToken(data: object, refresh = false, previousRefreshToken = "null"): Promise<Token> {
 		try {
-			const accessTokenValue = jwt.sign(data, this.privateKey, this.signOptions);
+			const accessTokenValue = jwt.sign(data, this.privateKey, {
+				...this.signOptions,
+				keyid: this.kid
+			});
 			const accessToken: AccessToken = {
 				value: accessTokenValue,
 				created_at: new Date(),
@@ -165,12 +133,54 @@ class JWT implements AuthInterface {
 		return this.authenticationScheme;
 	}
 
-	createJwks() {
-		const publicJWKS = createPublicKey(this.publicKey).export({ format: "jwk" });
+	/**
+	 * Returns private key in json web key format
+	 */
+	getPrivateJwks() {
+		return this.privateJwks;
+	}
 
-		return {
-			keys: [publicJWKS]
-		};
+	/**
+	 * Returns public key in json web key format
+	 */
+	getPublicJwks() {
+		return this.publicJwks;
+	}
+
+	/**
+	 * Calculates kid for key
+	 */
+	calculateKid(jwk: JsonWebKey) {
+		let components;
+
+		switch (jwk.kty) {
+			case "RSA":
+				components = {
+					e: jwk.e,
+					kty: "RSA",
+					n: jwk.n
+				};
+				break;
+			case "EC":
+				components = {
+					crv: jwk.crv,
+					kty: "EC",
+					x: jwk.x,
+					y: jwk.y
+				};
+				break;
+			case "OKP":
+				components = {
+					crv: jwk.crv,
+					kty: "OKP",
+					x: jwk.x
+				};
+				break;
+			default:
+				return undefined;
+		}
+
+		return createHash("sha256").update(JSON.stringify(components)).digest().toString("base64url");
 	}
 }
 

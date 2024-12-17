@@ -33,13 +33,10 @@ const envParsed = dotenvParseVariables(envs);
 process.env = { ...process.env, ...envParsed } as NodeJS.ProcessEnv;
 
 // Show the banner with Application title and description on app start
-const APPLICATION_TITLE = (process.env.APPLICATION_TITLE as string) || "Express Server";
-const APPLICATION_DESCRIPTION =
-	(process.env.APPLICATION_DESCRIPTION as string) || "Sample Typescript Express Server";
-const APPLICATION_TITLE_COLOR =
-	(process.env.APPLICATION_TITLE_COLOR as string) || "mediumaquamarine";
-const APPLICATION_DESCRIPTION_COLOR =
-	(process.env.APPLICATION_DESCRIPTION_COLOR as string) || "cyan";
+const APPLICATION_TITLE = process.env.APPLICATION_TITLE;
+const APPLICATION_DESCRIPTION = process.env.APPLICATION_DESCRIPTION;
+const APPLICATION_TITLE_COLOR = process.env.APPLICATION_TITLE_COLOR;
+const APPLICATION_DESCRIPTION_COLOR = process.env.APPLICATION_DESCRIPTION_COLOR;
 const title = figlet.textSync(APPLICATION_TITLE);
 console.log(chalk.hex(new ColorTranslator(APPLICATION_TITLE_COLOR).HEX)(title));
 console.log(
@@ -47,7 +44,7 @@ console.log(
 );
 
 const validationResult = typia.validate<NodeJS.ProcessEnv>(process.env);
-if (validationResult.errors.length) {
+if (!validationResult.success && validationResult.errors.length) {
 	console.error(
 		chalk.hex(new ColorTranslator("red").HEX)(
 			"Error occurred in type casting environment variables: " +

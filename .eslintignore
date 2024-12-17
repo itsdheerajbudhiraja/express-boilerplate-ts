@@ -1,7 +1,0 @@
-node_modules
-dist
-rust-wasm-libs
-typedocs
-reports
-tmp
-jest.config.ts

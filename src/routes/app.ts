@@ -1,4 +1,4 @@
-import type { Application, NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { AxiosError } from "axios";
 import cookieParser from "cookie-parser";
@@ -8,11 +8,17 @@ import mongoSanitize from "express-mongo-sanitize";
 import helmet from "helmet";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import MongoosePkg from "mongoose";
+import { Server } from "socket.io";
 import { ValidateError } from "tsoa";
 
 import { docsRouter } from "../controllers/Docs.js";
-import { ApiError } from "../errors/ApiError.js";
+import { ApiError, Forbidden } from "../errors/ApiError.js";
 import { ValidationError } from "../errors/ValidationError.js";
+import {
+	authenticateWebsocketConnectionForAdminUser,
+	authenticateWebsocketConnectionForEndUser,
+	type UserType
+} from "../middlewares/authMiddleware.js";
 import { responseMiddleware } from "../middlewares/responseMiddleware.js";
 import { logger } from "../winston_logger.js";
 
@@ -20,7 +26,7 @@ import { RegisterRoutes } from "./routes.js";
 
 const MongooseError = MongoosePkg.Error;
 
-const app: Application = express();
+const app = express();
 
 // APIs will start here
 
@@ -40,7 +46,8 @@ app.use(
 			} else {
 				callback(null, false);
 			}
-		}
+		},
+		credentials: true
 	})
 );
 
@@ -58,7 +65,7 @@ if (process.env.NODE_ENV == "production") {
 }
 
 app.use(express.json());
-//app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
 app.use(mongoSanitize());
@@ -116,7 +123,7 @@ app.use(function errorHandler(
 		return res.BAD_REQUEST(err.message);
 	}
 	if (err instanceof ApiError) {
-		logger.error(`${err.name} occurred in ${req.path}: %o`, err);
+		logger.error(`${err.name} occurred in ${req.path}: %o`, err.message);
 		return res.FAILURE(`${err.message}`, err.statusCode);
 	}
 	if (err instanceof SyntaxError && "body" in err && "status" in err) {
@@ -124,17 +131,11 @@ app.use(function errorHandler(
 		return res.FAILURE(err.message, err.status as number);
 	}
 	if (err instanceof AxiosError) {
-		console.log(err);
-		const errMsg =
-			"Axios error: " +
-			(err.response?.status
-				? `${err.response.status} \n Response data: ${JSON.stringify(err.response.data)}`
-				: err.message);
-		logger.error(errMsg);
+		logger.axiosErrorResponse("Axios error: %o", err);
 		return res.INTERNAL_SERVER_ERROR(ReasonPhrases.INTERNAL_SERVER_ERROR);
 	}
 	if (err instanceof Error) {
-		logger.error(`Error occurred in ${req.path}: %o`, err.message);
+		logger.error(`Error occurred in ${req.path}: %o`, err);
 		return res.INTERNAL_SERVER_ERROR(ReasonPhrases.INTERNAL_SERVER_ERROR);
 	}
 	next();
@@ -149,4 +150,55 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
 	next();
 });
 
-export { app };
+const io = new Server({
+	cors: {
+		origin: function (origin, callback) {
+			if (origin && process.env.CORS_ORIGIN.indexOf(origin) !== -1) {
+				callback(null, true);
+			} else if (origin && process.env.CORS_ORIGIN.indexOf("*") !== -1) {
+				callback(null, true);
+			} else {
+				callback(null, false);
+			}
+		},
+		methods: ["GET", "POST"],
+		credentials: true
+	}
+});
+
+const namespace = io.of(/^\/bgv\/notifications\/(org|candidate)\/.*$/);
+
+namespace.use(async (socket, next) => {
+	const nsp = socket.nsp.name.split("/");
+	const type = nsp[3] as UserType;
+	const id = nsp[4];
+
+	try {
+		switch (type) {
+			case "end_user":
+				await authenticateWebsocketConnectionForEndUser(id, socket.handshake.headers);
+				break;
+
+			case "admin_user": {
+				await authenticateWebsocketConnectionForAdminUser(id, socket.handshake.headers);
+				break;
+			}
+			default:
+				throw new Forbidden("Invalid topic");
+		}
+	} catch (err) {
+		logger.error("Error occurred in websocket authenticate middleware: %o", err);
+		return next(new Error(err as string));
+	}
+	next();
+});
+
+namespace.on("connection", (socket) => {
+	logger.debug("A user connected on socket id :  %o", socket.id);
+
+	socket.on("disconnect", () => {
+		logger.debug("User disconnected on socket id : %o", socket.id);
+	});
+});
+
+export { app, io };
