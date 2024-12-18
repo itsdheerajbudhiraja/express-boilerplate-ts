@@ -628,21 +628,22 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async recursiveEncrypt(collectionName: string, obj: object, path?: string) {
+	private async recursiveEncrypt(collectionName: string, obj: object, path?: string[]) {
 		try {
-			const objToEncrypt = path ? get(obj, path.split(".")) : obj;
+			const objToEncrypt = path ? get(obj, path) : obj;
 			await Promise.all(
 				Object.entries(objToEncrypt).map(async ([key, value]) => {
 					if (value != null) {
-						const pathToEncrypt = path ? path + `.${key}` : key;
+						let pathToEncrypt = [key];
+
+						if (path) {
+							pathToEncrypt = [...path, ...pathToEncrypt];
+						}
+
 						if (isObjectOrArray(value as object)) {
 							await this.recursiveEncrypt(collectionName, obj, pathToEncrypt);
 						} else {
-							set(
-								obj,
-								pathToEncrypt || key,
-								await this.encryptValue(collectionName, value as string)
-							);
+							set(obj, pathToEncrypt, await this.encryptValue(collectionName, value as string));
 						}
 					}
 				})
@@ -806,17 +807,22 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private async recursiveDecrypt(obj: object, path?: string) {
+	private async recursiveDecrypt(obj: object, path?: string[]) {
 		try {
-			const objToDecrypt = path ? get(obj, path.split(".")) : obj;
+			const objToDecrypt = path ? get(obj, path) : obj;
 			await Promise.all(
 				Object.entries(objToDecrypt).map(async ([key, value]) => {
 					if (value != null) {
-						const pathToDecrypt = path ? path + `.${key}` : key;
+						let pathToDecrypt = [key];
+
+						if (path) {
+							pathToDecrypt = [...path, ...pathToDecrypt];
+						}
+
 						if (isObjectOrArray(value as object)) {
 							await this.recursiveDecrypt(obj, pathToDecrypt);
 						} else {
-							set(obj, pathToDecrypt || key, await this.decryptValue(value as Binary));
+							set(obj, pathToDecrypt, await this.decryptValue(value as Binary));
 						}
 					}
 				})
@@ -887,17 +893,22 @@ class MongoDb implements DbInterface<MongoDb> {
 		}
 	}
 
-	private recursiveDecode(obj: object, path?: string) {
+	private recursiveDecode(obj: object, path?: string[]) {
 		try {
-			const objToDecrypt = path ? get(obj, path.split(".")) : obj;
+			const objToDecrypt = path ? get(obj, path) : obj;
 
 			Object.entries(objToDecrypt).map(([key, value]) => {
 				if (value != null) {
-					const pathToDecrypt = path ? path + `.${key}` : key;
+					let pathToDecrypt = [key];
+
+					if (path) {
+						pathToDecrypt = [...path, ...pathToDecrypt];
+					}
+
 					if (isObjectOrArray(value as object)) {
 						this.recursiveDecode(obj, pathToDecrypt);
 					} else {
-						set(obj, pathToDecrypt || key, this.decodeValue(value as string));
+						set(obj, pathToDecrypt, this.decodeValue(value as string));
 					}
 				}
 			});

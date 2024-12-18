@@ -46,8 +46,10 @@ async function startup() {
 
 	// graceful shutdown handling
 	process.on("SIGTERM", async () => {
-		logger.info("Closing all socket connections");
-		await webSocket.close();
+		if (process.env.ENABLE_WEBSOCKET_SERVER) {
+			logger.info("Closing all socket connections");
+			await webSocket?.close();
+		}
 
 		server.close(async () => {
 			logger.info("Server shutdown completed");

@@ -150,55 +150,59 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
 	next();
 });
 
-const io = new Server({
-	cors: {
-		origin: function (origin, callback) {
-			if (origin && process.env.CORS_ORIGIN.indexOf(origin) !== -1) {
-				callback(null, true);
-			} else if (origin && process.env.CORS_ORIGIN.indexOf("*") !== -1) {
-				callback(null, true);
-			} else {
-				callback(null, false);
-			}
-		},
-		methods: ["GET", "POST"],
-		credentials: true
-	}
-});
+let io: Server | undefined;
 
-const namespace = io.of(/^\/bgv\/notifications\/(org|candidate)\/.*$/);
-
-namespace.use(async (socket, next) => {
-	const nsp = socket.nsp.name.split("/");
-	const type = nsp[3] as UserType;
-	const id = nsp[4];
-
-	try {
-		switch (type) {
-			case "end_user":
-				await authenticateWebsocketConnectionForEndUser(id, socket.handshake.headers);
-				break;
-
-			case "admin_user": {
-				await authenticateWebsocketConnectionForAdminUser(id, socket.handshake.headers);
-				break;
-			}
-			default:
-				throw new Forbidden("Invalid topic");
+if (process.env.ENABLE_WEBSOCKET_SERVER) {
+	io = new Server({
+		cors: {
+			origin: function (origin, callback) {
+				if (origin && process.env.CORS_ORIGIN.indexOf(origin) !== -1) {
+					callback(null, true);
+				} else if (origin && process.env.CORS_ORIGIN.indexOf("*") !== -1) {
+					callback(null, true);
+				} else {
+					callback(null, false);
+				}
+			},
+			methods: ["GET", "POST"],
+			credentials: true
 		}
-	} catch (err) {
-		logger.error("Error occurred in websocket authenticate middleware: %o", err);
-		return next(new Error(err as string));
-	}
-	next();
-});
-
-namespace.on("connection", (socket) => {
-	logger.debug("A user connected on socket id :  %o", socket.id);
-
-	socket.on("disconnect", () => {
-		logger.debug("User disconnected on socket id : %o", socket.id);
 	});
-});
+
+	const namespace = io.of(/^\/bgv\/notifications\/(org|candidate)\/.*$/);
+
+	namespace.use(async (socket, next) => {
+		const nsp = socket.nsp.name.split("/");
+		const type = nsp[3] as UserType;
+		const id = nsp[4];
+
+		try {
+			switch (type) {
+				case "end_user":
+					await authenticateWebsocketConnectionForEndUser(id, socket.handshake.headers);
+					break;
+
+				case "admin_user": {
+					await authenticateWebsocketConnectionForAdminUser(id, socket.handshake.headers);
+					break;
+				}
+				default:
+					throw new Forbidden("Invalid topic");
+			}
+		} catch (err) {
+			logger.error("Error occurred in websocket authenticate middleware: %o", err);
+			return next(new Error(err as string));
+		}
+		next();
+	});
+
+	namespace.on("connection", (socket) => {
+		logger.debug("A user connected on socket id :  %o", socket.id);
+
+		socket.on("disconnect", () => {
+			logger.debug("User disconnected on socket id : %o", socket.id);
+		});
+	});
+}
 
 export { app, io };

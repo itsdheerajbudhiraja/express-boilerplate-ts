@@ -18,7 +18,6 @@ export async function main() {
 			logger.debug("Inserting/Updating user: %o", user.name);
 			await axiosInstance
 				.put("/users", user)
-				.then()
 				.then((resp) => {
 					logger.axiosSuccessResponse("User Create response: %o", resp);
 				})

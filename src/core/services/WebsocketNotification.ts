@@ -27,6 +27,14 @@ export class WebsocketNotificationService {
 		const recipientType = websocketNotificationData.recipient_type;
 
 		const notification_endpoint = `notifications/${recipientType}/${id}`;
+
+		if (!io) {
+			logger.error(
+				"Websocket server instance not initialized. Skipping websocket notification ..."
+			);
+			return;
+		}
+
 		const notification = io.of(notification_endpoint);
 		logger.debug(
 			"Sending websocket notification to %o with payload : %o",

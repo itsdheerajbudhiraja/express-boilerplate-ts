@@ -27,7 +27,7 @@ RUN npm run build
 # Updating swagger
 RUN npm run swagger
 
-# Updating typedocs
+# Updating type docs
 RUN npm run doc
 
 # Copy files for test

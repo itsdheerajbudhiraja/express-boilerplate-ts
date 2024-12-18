@@ -48,7 +48,7 @@ if (process.env.HTTPS) {
 }
 
 if (process.env.ENABLE_WEBSOCKET_SERVER) {
-	io.listen(server);
+	io?.listen(server);
 }
 
 export { server };

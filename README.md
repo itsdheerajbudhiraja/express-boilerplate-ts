@@ -14,7 +14,7 @@ It is designed keeping `SOLID Principles` and `Loose Coupling` in mind. It demon
 - Controllers, Services, Middlewares, Entities, Error handlers all are pre-configured with standard best practices and follows SOLID Principles, loose coupled Architecture
 - Mongo Database with extensible database interface for other Databases implementation
 - Redis Persistent Queue with extensible interface for other Queues implementation
-- NodeCache support with extensible interface for other Cache implementation
+- NodeCache and RedisCache support with extensible interface for other Cache implementation
 - Rust Web assembly boilerplate for compute intensive tasks
 - Worker pool for running compute intensive tasks in worker threads
 - Standard utilities for validation, email sender are available
@@ -39,7 +39,7 @@ It is designed keeping `SOLID Principles` and `Loose Coupling` in mind. It demon
 - `src/utils` This contains common utilities
 - `src/workers` This implements workerpool and worker tasks to execute in worker threads
 - `src/p_queue` This contains extensible Persistent Queue interface and Redis Pub/Sub implementation
-- `src/cache` This contains extensible application cache and Implementation of Node Cache
+- `src/cache` This contains extensible application cache and Implementation of Node Cache and Redis Cache demonstrating factory pattern
 - `src/__tests__` This contains unit and integration test cases
 - `rust-wasm-libs` This contains web assembly code for simple factorial example
 - `keys` This contains blank `privateKey.pem` and `publicKey.pem` used by JWT auth implementation. One needs to put actual RSA keys in those files before running the application or test cases.
@@ -53,7 +53,7 @@ It is designed keeping `SOLID Principles` and `Loose Coupling` in mind. It demon
 
 ## PreRequisites
 
-1. NodeJs >= v18.17.1
+1. NodeJs >= v22.12.0
 
 ## Steps to run
 
@@ -133,7 +133,7 @@ app.get("/wasm/:n", async (req: Request, res: Response) => {
 ### Clean up rust wasm if not using
 
 ```bash
-rm -rf rust-wasm-libs src/workers/factorial.ts Dockerfile.rust-wasm 
+rm -rf rust-wasm-libs src/workers/factorial.ts Dockerfile.rust-wasm
 ```
 
 Delete `"rust-wasm-libs": "file:rust-wasm-libs/pkg"` dependency and `build-rust-wasm` task from `package.json` file.
