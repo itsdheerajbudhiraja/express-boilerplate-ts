@@ -1,1 +1,13 @@
+#!/bin/sh
+
+if [ "$2" = "commit" ]; then
+  echo "Skipping prepare-commit-msg hook due to amend."
+  exit 0
+fi
+
+if [ -n "$GIT_SEQUENCE_EDITOR" ]; then
+  echo "Skipping prepare-commit-msg hook due to rebase."
+  exit 0
+fi
+
 exec < /dev/tty && npx cz --hook || true

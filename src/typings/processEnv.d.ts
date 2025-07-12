@@ -1,5 +1,6 @@
 import type { AuthenticationScheme } from "../auth/types.ts";
 import type { Algorithm } from "jsonwebtoken";
+import type { StringValue } from "ms";
 import type { tags } from "typia";
 
 declare global {
@@ -21,6 +22,8 @@ declare global {
 			CORS_ORIGIN: string[];
 			LOG_LEVEL_CONSOLE: "debug" | "info" | "warn" | "error";
 			LOG_LEVEL_FILE: "silly" | "debug" | "info" | "warn" | "error";
+			RATE_LIMIT_WINDOW_MS: number;
+			RATE_LIMIT_MAX_REQUESTS: number;
 
 			// DOCS Authentication
 			DOCS_API_KEY: string & tags.MinLength<10>;
@@ -77,12 +80,10 @@ declare global {
 			// Auth
 			AUTH_TYPE: "JWT";
 			JWT_ALGORITHM: Algorithm;
-			JWT_EXPIRY_TIME: TruthyString;
-			JWT_REFRESH_TOKEN_EXPIRY_TIME: TruthyString;
-			JWT_AUDIENCES: TruthyString;
-			JWT_ISSUER: TruthyString;
-			JWT_PII_ENCRYPTION_AES_KEY: string;
-			JWT_PII_ENCRYPTION_AES_IV: string;
+			JWT_EXPIRY_TIME: StringValue | number;
+			JWT_REFRESH_TOKEN_EXPIRY_TIME: StringValue | number;
+			JWT_AUDIENCES: string;
+			JWT_ISSUER: string;
 			AUTHENTICATION_SCHEME: keyof typeof AuthenticationScheme;
 			PRIVATE_PEM_KEY: TruthyString;
 			PUBLIC_PEM_KEY: TruthyString;

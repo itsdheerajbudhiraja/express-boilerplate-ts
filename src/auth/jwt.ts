@@ -1,6 +1,7 @@
 import type AuthInterface from "./AuthInterface.js";
 import type { AccessToken, JwtConstructorOptions, RefreshToken, Token } from "./types.js";
 import type { SignOptions, VerifyOptions, Algorithm } from "jsonwebtoken";
+import type { StringValue } from "ms";
 
 import crypto, { createPublicKey, createHash, type JsonWebKey } from "crypto";
 import jwt from "jsonwebtoken";
@@ -20,7 +21,7 @@ class JWT implements AuthInterface {
 	private kid: string | undefined;
 	private authenticationScheme: AuthenticationScheme;
 	private algorithm: Algorithm;
-	private expiryTime: string | number;
+	private expiryTime: StringValue | number;
 	private refreshTokenExpiryTime: string | number;
 	private audiences: string | string[];
 	private issuer: string;

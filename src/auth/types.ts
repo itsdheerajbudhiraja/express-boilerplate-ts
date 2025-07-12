@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SignOptions, VerifyOptions } from "jsonwebtoken";
+import type { StringValue } from "ms";
 
 enum AuthenticationScheme {
 	"Basic" = "Basic",
@@ -40,7 +41,7 @@ type JwtConstructorOptions = {
 	privateKey?: string;
 	publicKey?: string;
 	audiences?: string | string[];
-	expiryTime?: string | number;
+	expiryTime?: StringValue | number;
 	refreshTokenExpiryTime?: string | number;
 	issuer?: string;
 };

@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import mongoSanitize from "express-mongo-sanitize";
+import { slowDown } from "express-slow-down";
 import helmet from "helmet";
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 import MongoosePkg from "mongoose";
@@ -27,6 +28,29 @@ import { RegisterRoutes } from "./routes.js";
 const MongooseError = MongoosePkg.Error;
 
 const app = express();
+
+// Allow query parameters to be modified
+// This is a workaround for the issue where query parameters are not writable in Express
+app.use((req, res, next) => {
+	Object.defineProperty(req, "query", {
+		...Object.getOwnPropertyDescriptor(req, "query"),
+		value: req.query,
+		writable: true
+	});
+	next();
+});
+
+// Rate Limiting Middleware
+const rateLimit = slowDown({
+	windowMs: process.env.RATE_LIMIT_WINDOW_MS,
+	delayAfter: process.env.RATE_LIMIT_MAX_REQUESTS,
+	delayMs: (hits) => (hits - process.env.RATE_LIMIT_MAX_REQUESTS) * 100, // 100ms delay for each request over the limit
+	maxDelayMs: 5000, // Maximum delay of 5 seconds
+	validate: {
+		trustProxy: process.env.TRUST_PROXY // Set to true if your app is behind a reverse proxy
+	}
+});
+app.use(rateLimit);
 
 // APIs will start here
 

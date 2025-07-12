@@ -4,8 +4,8 @@ import { writeFileSync } from "fs";
 import path from "path";
 import swaggerJsdoc from "swagger-jsdoc";
 
-import swaggerConfig from "./configs/swaggerConfig.json" assert { type: "json" };
-import existingSwagger from "./tsoa-specs.json" assert { type: "json" };
+import swaggerConfig from "./configs/swaggerConfig.json" with { type: "json" };
+import existingSwagger from "./tsoa-specs.json" with { type: "json" };
 import { dirName } from "./utils/fileDirName.js";
 import { logger } from "./winston_logger.js";
 
