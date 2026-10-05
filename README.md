@@ -137,3 +137,12 @@ rm -rf rust-wasm-libs src/workers/factorial.ts Dockerfile.rust-wasm
 ```
 
 Delete `"rust-wasm-libs": "file:rust-wasm-libs/pkg"` dependency and `build-rust-wasm` task from `package.json` file.
+
+
+---
+
+## ☕ Support
+
+If this project helped you or you found it useful, consider supporting my work with a coffee.
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/dbdagr8)
